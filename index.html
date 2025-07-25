@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathBlocks - 計算ブロックゲーム</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- ユーザー選択画面 -->
+        <div id="userScreen" class="screen">
+            <h1>MathBlocks</h1>
+            <p>計算ブロックゲーム v2.0</p>
+            
+            <div class="user-selection">
+                <h2>プレイモード選択</h2>
+                <div class="user-mode-buttons">
+                    <button id="guestModeBtn" class="user-mode-btn guest-btn">
+                        <div class="mode-icon">👤</div>
+                        <div class="mode-name">ゲストプレイ</div>
+                        <div class="mode-desc">記録を残さずプレイ</div>
+                    </button>
+                    <button id="userModeBtn" class="user-mode-btn user-btn">
+                        <div class="mode-icon">👨‍💼</div>
+                        <div class="mode-name">ユーザーモード</div>
+                        <div class="mode-desc">記録・アイテム・コレクション</div>
+                    </button>
+                </div>
+                
+                <div id="userInfo" class="user-info" style="display: none;">
+                    <div class="current-user">
+                        <span id="currentUserName">ゲスト</span>
+                        <button id="logoutBtn" class="logout-btn">ログアウト</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ユーザー登録/ログイン画面 -->
+        <div id="authScreen" class="screen" style="display: none;">
+            <h1>ユーザーモード</h1>
+            
+            <div class="auth-tabs">
+                <button id="loginTab" class="auth-tab active">ログイン</button>
+                <button id="registerTab" class="auth-tab">新規登録</button>
+            </div>
+            
+            <div id="loginForm" class="auth-form">
+                <h2>ログイン</h2>
+                <div class="form-group">
+                    <label for="loginUsername">ユーザー名</label>
+                    <input type="text" id="loginUsername" placeholder="ユーザー名を入力">
+                </div>
+                <button id="loginSubmitBtn" class="auth-btn">ログイン</button>
+                
+                <div class="user-list">
+                    <h3>登録済みユーザー</h3>
+                    <div id="existingUsers" class="existing-users"></div>
+                </div>
+            </div>
+            
+            <div id="registerForm" class="auth-form" style="display: none;">
+                <h2>新規登録</h2>
+                <div class="form-group">
+                    <label for="registerUsername">ユーザー名</label>
+                    <input type="text" id="registerUsername" placeholder="3-20文字で入力" maxlength="20">
+                </div>
+                <button id="registerSubmitBtn" class="auth-btn">登録</button>
+            </div>
+            
+            <div class="auth-actions">
+                <button id="backToUserSelectBtn" class="back-btn">戻る</button>
+                <button id="importUserBtn" class="import-btn">データインポート</button>
+            </div>
+        </div>
+        
+        <!-- ゲーム開始画面 -->
+        <div id="startScreen" class="screen" style="display: none;">
+            <div class="top-controls">
+                <div class="user-info-display">
+                    <span>ユーザー: </span>
+                    <span id="headerUserName">ゲスト</span>
+                </div>
+                <div class="user-controls">
+                    <button id="userSwitchBtn" class="control-btn">ユーザー切り替え</button>
+                    <button id="newUserBtn" class="control-btn">新規作成</button>
+                    <button id="userMenuBtn" class="control-btn">設定</button>
+                </div>
+            </div>
+            
+            <h1>MathBlocks</h1>
+            <p>計算ブロックゲーム</p>
+            
+            <div class="mode-selection">
+                <h2>ゲームモード</h2>
+                <button class="mode-btn" data-mode="score">スコアアタック</button>
+                <button class="mode-btn" data-mode="time">タイムアタック</button>
+            </div>
+            
+            <div class="difficulty-selection">
+                <h2>難易度</h2>
+                <button class="difficulty-btn" data-difficulty="veryeasy">入門</button>
+                <button class="difficulty-btn" data-difficulty="easy">イージー</button>
+                <button class="difficulty-btn" data-difficulty="normal">ノーマル</button>
+                <button class="difficulty-btn" data-difficulty="hard">ハード</button>
+                <button class="difficulty-btn" data-difficulty="veryhard">エクストリーム</button>
+            </div>
+            
+            <div class="training-selection">
+                <h2>特訓モード</h2>
+                <div class="training-modes">
+                    <button class="training-btn" data-training="kuku">
+                        <div class="training-name">九九</div>
+                        <div class="training-desc">掛け算の九九を覚えよう</div>
+                    </button>
+                    <button class="training-btn" data-training="omiyage">
+                        <div class="training-name">おみやげ算</div>
+                        <div class="training-desc">10番台同士の掛け算に挑戦</div>
+                    </button>
+                    <button class="training-btn" data-training="sakuranbo">
+                        <div class="training-name">さくらんぼ算</div>
+                        <div class="training-desc">繰り上がり・繰り下がりの計算</div>
+                    </button>
+                    <button class="training-btn" data-training="addition_only">
+                        <div class="training-name">足し算のみ</div>
+                        <div class="training-desc">足し算の特訓（1-100）</div>
+                    </button>
+                    <button class="training-btn" data-training="subtraction_only">
+                        <div class="training-name">引き算のみ</div>
+                        <div class="training-desc">引き算の特訓（1-100）</div>
+                    </button>
+                    <button class="training-btn" data-training="multiplication_only">
+                        <div class="training-name">掛け算のみ</div>
+                        <div class="training-desc">掛け算の特訓（1-50）</div>
+                    </button>
+                    <button class="training-btn" data-training="division_only">
+                        <div class="training-name">割り算のみ</div>
+                        <div class="training-desc">割り算の特訓（1-500）</div>
+                    </button>
+                </div>
+            </div>
+            
+            <button id="startBtn" class="start-btn" disabled>ゲーム開始</button>
+            <button id="viewScoresBtn" class="view-scores-btn">ハイスコア</button>
+        </div>
+        
+        <!-- ゲーム画面 -->
+        <div id="gameScreen" class="screen" style="display: none;">
+            <div class="game-container">
+                <div class="game-area">
+                    <div class="game-title">
+                        <h1>MathBlocks</h1>
+                        <p>計算ブロックゲーム</p>
+                    </div>
+                    <canvas id="gameCanvas"></canvas>
+                </div>
+                
+                <div class="side-panel">
+                    <div class="info-panel">
+                        <div class="game-mode-display">
+                            <h3>ゲーム設定</h3>
+                            <div class="mode-info">
+                                <div class="mode-item">
+                                    <span class="mode-label">モード:</span>
+                                    <span id="currentMode">-</span>
+                                </div>
+                                <div class="mode-item">
+                                    <span class="mode-label">難易度:</span>
+                                    <span id="currentDifficulty">-</span>
+                                </div>
+                                <div class="mode-item" id="trainingModeDisplay" style="display: none;">
+                                    <span class="mode-label">特訓:</span>
+                                    <span id="currentTraining">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="score-display">
+                            <h3>スコア</h3>
+                            <div id="score">0</div>
+                        </div>
+                        
+                        <div class="level-display">
+                            <h3>レベル</h3>
+                            <div id="level">1</div>
+                        </div>
+                        
+                        <div class="combo-display">
+                            <h3>コンボ</h3>
+                            <div id="combo">0</div>
+                        </div>
+                        
+                        <div id="timeDisplay" class="time-display" style="display: none;">
+                            <h3>タイム</h3>
+                            <div id="time">00:00</div>
+                        </div>
+                        
+                        <div class="stats-display">
+                            <div class="stat-item">
+                                <h4>正解数</h4>
+                                <div id="correctCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <h4>誤答数</h4>
+                                <div id="wrongCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <h4>平均時間</h4>
+                                <div id="avgTime">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-panel">
+                        <div class="current-input">
+                            <input type="text" id="answerDisplay" readonly>
+                        </div>
+                        
+                        <div class="numpad">
+                            <button class="numpad-btn" data-value="7">7</button>
+                            <button class="numpad-btn" data-value="8">8</button>
+                            <button class="numpad-btn" data-value="9">9</button>
+                            <button class="numpad-btn" data-value="4">4</button>
+                            <button class="numpad-btn" data-value="5">5</button>
+                            <button class="numpad-btn" data-value="6">6</button>
+                            <button class="numpad-btn" data-value="1">1</button>
+                            <button class="numpad-btn" data-value="2">2</button>
+                            <button class="numpad-btn" data-value="3">3</button>
+                            <button class="numpad-btn" data-value="0">0</button>
+                            <button class="numpad-btn ok-btn ok-wide" data-action="ok">OK</button>
+                            <button class="numpad-btn clear-btn clear-wide" data-action="clear">C</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-buttons">
+                        <button id="pauseBtn">一時停止</button>
+                        <button id="quitBtn">終了</button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- ゲームオーバー画面 -->
+        <div id="gameOverScreen" class="screen" style="display: none;">
+            <h1>ゲームオーバー</h1>
+            <div class="final-score">
+                <h2>最終スコア</h2>
+                <div id="finalScore">0</div>
+            </div>
+            <div class="final-stats">
+                <p>レベル: <span id="finalLevel">1</span></p>
+                <p>最大コンボ: <span id="finalMaxCombo">0</span></p>
+                <p id="finalTime" style="display: none;">クリアタイム: <span id="clearTime">00:00</span></p>
+            </div>
+            <div class="detailed-stats">
+                <h3>詳細記録</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">ゲーム時間:</span>
+                        <span id="gameTimeDetail">0:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">正解数:</span>
+                        <span id="correctDetail">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">誤答数:</span>
+                        <span id="wrongDetail">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">平均回答時間:</span>
+                        <span id="avgTimeDetail">0.0s</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">モード:</span>
+                        <span id="modeDetail">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">難易度:</span>
+                        <span id="difficultyDetail">-</span>
+                    </div>
+                </div>
+            </div>
+            <button id="retryBtn">もう一度</button>
+            <button id="backToMenuBtn">メニューに戻る</button>
+            <button id="viewScoresFromGameOverBtn">ハイスコア</button>
+        </div>
+        
+        <!-- スコアボード画面 -->
+        <div id="scoreScreen" class="screen" style="display: none;">
+            <h1>スコアボード</h1>
+            <div class="score-controls">
+                <div class="score-filters">
+                    <label for="sortFilter">並び替え: </label>
+                    <select id="sortFilter">
+                        <option value="score">スコア順</option>
+                        <option value="date">日時順</option>
+                        <option value="mode">モード別</option>
+                        <option value="difficulty">難易度別</option>
+                        <option value="gameTime">ゲーム時間順</option>
+                        <option value="level">レベル順</option>
+                    </select>
+                </div>
+                <div class="score-actions">
+                    <button id="exportScoresBtn">CSV出力</button>
+                    <button id="backFromScoresBtn">戻る</button>
+                </div>
+            </div>
+            <div class="scores-container">
+                <table id="scoresTable">
+                    <thead>
+                        <tr>
+                            <th>順位</th>
+                            <th>ユーザー</th>
+                            <th>スコア</th>
+                            <th>最大コンボ</th>
+                            <th>レベル</th>
+                            <th>正解数</th>
+                            <th>誤答数</th>
+                            <th>平均時間</th>
+                            <th>ゲーム時間</th>
+                            <th>モード</th>
+                            <th>難易度</th>
+                            <th>特訓</th>
+                            <th>日時</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- アイテムコレクション画面 -->
+        <div id="collectionScreen" class="screen" style="display: none;">
+            <h1>アイテムコレクション</h1>
+            
+            <div class="collection-header">
+                <div class="collection-stats">
+                    <span id="collectionCount">0/20</span> アイテム獲得
+                </div>
+                <button id="backFromCollectionBtn" class="back-btn">戻る</button>
+            </div>
+            
+            <div class="collection-grid">
+                <div id="itemsContainer" class="items-container">
+                    <!-- アイテムが動的に追加される -->
+                </div>
+            </div>
+            
+            <div class="new-items" id="newItemsNotification" style="display: none;">
+                <h3>🎉 新しいアイテムを獲得しました！</h3>
+                <div id="newItemsList"></div>
+                <button id="closeNewItemsBtn">閉じる</button>
+            </div>
+        </div>
+        
+        <!-- ユーザー設定画面 -->
+        <div id="userSettingsScreen" class="screen" style="display: none;">
+            <h1>ユーザー設定</h1>
+            
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h2>プロファイル</h2>
+                    <div class="form-group">
+                        <label>ユーザー名</label>
+                        <input type="text" id="profileUsername" readonly>
+                        <small>※ユーザー名は変更できません</small>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h2>ユーザーデータ</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">総プレイ数</div>
+                            <div id="statGamesPlayed" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">総スコア</div>
+                            <div id="statTotalScore" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">総正答数</div>
+                            <div id="statTotalCorrect" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">総誤答数</div>
+                            <div id="statTotalWrong" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">総平均正答時間</div>
+                            <div id="statAvgAnswerTime" class="stat-value">0.0s</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-actions">
+                <button id="backFromSettingsBtn" class="back-btn">戻る</button>
+                <button id="exportUserScoresBtn" class="export-btn">自分のハイスコアCSV出力</button>
+                <button id="exportDataBtn" class="export-btn">全データエクスポート</button>
+                <button id="deleteUserBtn" class="delete-btn">アカウント削除</button>
+            </div>
+        </div>
+        
+        <!-- デバッグパネル -->
+        <div id="debugPanel" class="debug-panel" style="display: none;">
+            <div class="debug-controls">
+                <h3>デバッグパネル</h3>
+                <h4>計算設定</h4>
+                <div class="debug-operations">
+                    <label><input type="checkbox" id="opAdd" checked> 足し算（＋）</label>
+                    <label><input type="checkbox" id="opSub" checked> 引き算（－）</label>
+                    <label><input type="checkbox" id="opMul" checked> 掛け算（×）</label>
+                    <label><input type="checkbox" id="opDiv" checked> 割り算（÷）</label>
+                </div>
+                <div class="debug-row">
+                    <label>最小値: <input type="number" id="minNum" value="1" min="1" max="999"></label>
+                    <label>最大値: <input type="number" id="maxNum" value="10" min="1" max="999"></label>
+                </div>
+                
+                <h4>ゲーム設定</h4>
+                <div class="debug-row">
+                    <label>落下速度: <span id="fallSpeedValue">50</span></label>
+                    <input type="range" id="fallSpeed" min="10" max="200" value="50">
+                </div>
+                <div class="debug-row">
+                    <label>ブロック生成間隔(ms): <span id="blockIntervalValue">1000</span></label>
+                    <input type="range" id="blockInterval" min="200" max="3000" value="1000">
+                </div>
+                <div class="debug-row">
+                    <label>同時出現数: <span id="maxBlocksValue">1</span></label>
+                    <input type="range" id="maxBlocks" min="1" max="7" value="1">
+                </div>
+                
+                <button id="applyDebug">設定適用</button>
+                
+                <h4>ヒントブロックテスト</h4>
+                <div class="debug-row">
+                    <label>ヒント変化間隔(秒): <span id="hintIntervalValue">3</span></label>
+                    <input type="range" id="hintInterval" min="1" max="15" value="3">
+                </div>
+                <div class="debug-row">
+                    <label>ヒント変化確率(%): <span id="hintChanceValue">80</span></label>
+                    <input type="range" id="hintChance" min="10" max="100" value="80">
+                </div>
+                <div class="debug-row">
+                    <button id="forceHintTransformBtn" style="background-color: #9b59b6; color: white;">強制ヒント変化実行</button>
+                    <button id="forceHintBlockBtn" style="background-color: #3498db; color: white;">強制ヒントブロック生成</button>
+                </div>
+                <div class="debug-row">
+                    <label>テスト計算式: </label>
+                    <input type="text" id="testExpression" placeholder="例: 23+59" style="width: 100px;">
+                    <button id="testHintBtn" style="background-color: #f39c12; color: white;">ヒント生成テスト</button>
+                </div>
+                <div class="debug-row">
+                    <div id="hintResult" style="font-size: 12px; color: #666; margin-top: 5px;"></div>
+                </div>
+                
+                <h4>データ管理</h4>
+                <div class="debug-row">
+                    <label><input type="checkbox" id="autoSaveEnabled"> 自動ファイル保存</label>
+                    <small style="display: block; color: #666; margin-top: 5px;">スコアボード表示時にJSONファイルを自動ダウンロード</small>
+                </div>
+                <div class="debug-row">
+                    <button id="importScoresBtn" style="background-color: #27ae60; color: white;">スコア データインポート</button>
+                    <button id="importUsersBtn" style="background-color: #3498db; color: white;">ユーザー データインポート</button>
+                </div>
+                <div class="debug-row">
+                    <button id="clearAllScoresDebug" style="background-color: #e74c3c; color: white;">全スコア削除</button>
+                </div>
+                <!-- 隠しファイル入力 -->
+                <input type="file" id="jsonFileInput" accept=".json,application/json" style="display: none;">
+                
+                <button id="closeDebug">閉じる</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/hintSystem.js"></script>
+    <script src="js/block.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/userManager.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
