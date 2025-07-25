@@ -62,8 +62,8 @@ class InputManager {
     }
     
     appendNumber(num) {
-        // 最大3桁まで
-        if (this.currentInput.length < 3) {
+        // 最大5桁まで
+        if (this.currentInput.length < 5) {
             this.currentInput += num;
             this.updateDisplay();
         }
