@@ -387,11 +387,14 @@ class BlockManager {
     constructor(calculator) {
         this.calculator = calculator;
         this.blocks = [];
-        this.grid = this.createEmptyGrid();
+        this.currentBlocks = []; // 現在落下中のブロック（複数対応）
+        this.grid = null; // グリッドは初期化メソッドで設定
+        this.isInitialized = false; // 初期化状態フラグ
+        
+        // 基本設定
         this.nextBlockTimer = 0;
         this.blockInterval = 1000; // 初期ブロック生成間隔
         this.fallingSpeed = 50; // ピクセル/秒
-        this.currentBlocks = []; // 現在落下中のブロック（複数対応）
         this.maxBlocks = 1; // 同時出現数（最大7まで）
         this.game = null; // ゲーム参照（タイムスタンプ記録用）
         
@@ -406,6 +409,24 @@ class BlockManager {
         this.hintTransformTimer = 0;
         this.hintTransformInterval = 3000; // 3秒間隔でヒント変化をチェック（テスト用に短縮）
         this.hintTransformChance = 0.8; // 80%の確率でブロックがヒント化（テスト用に高確率）
+        
+        // 対戦モード用
+        this.specialBlockRate = null; // 特殊ブロック生成確率（対戦モードで使用）
+        
+        // 初期化を実行
+        this.initialize();
+    }
+    
+    // BlockManager初期化メソッド
+    initialize() {
+        if (this.isInitialized) {
+            console.warn('BlockManager: Already initialized, skipping');
+            return;
+        }
+        
+        this.grid = this.createEmptyGrid();
+        this.isInitialized = true;
+        console.log('BlockManager: Initialized successfully');
     }
     
     setGame(game) {
@@ -532,7 +553,39 @@ class BlockManager {
         return grid;
     }
     
+    // グリッド位置の有効性チェック
+    isValidGridPosition(row, col) {
+        // グリッドの存在チェック
+        if (!this.grid || !Array.isArray(this.grid)) {
+            return false;
+        }
+        
+        // 行の境界チェック
+        if (row < 0 || row >= CONFIG.GRID.ROWS || row >= this.grid.length) {
+            return false;
+        }
+        
+        // 行の存在チェック
+        if (!this.grid[row] || !Array.isArray(this.grid[row])) {
+            return false;
+        }
+        
+        // 列の境界チェック
+        if (col < 0 || col >= CONFIG.GRID.COLS || col >= this.grid[row].length) {
+            return false;
+        }
+        
+        return true;
+    }
+    
     update(deltaTime, level) {
+        // 初期化チェック
+        if (!this.isInitialized || !this.grid) {
+            console.warn('BlockManager: Not initialized, reinitializing...');
+            this.initialize();
+            return;
+        }
+        
         // タイムストップ状態チェック
         const currentTime = performance.now();
         if (this.isTimeStopActive && currentTime >= this.timeStopEndTime) {
@@ -540,8 +593,11 @@ class BlockManager {
             console.log('Time Stop ended');
         }
         
-        // タイムストップ中は新しいブロック生成と落下を停止
-        if (!this.isTimeStopActive) {
+        // ゲームオーバー状態チェック（ブロック生成と落下を停止）
+        const isGameOver = this.game && this.game.state === 'game_over';
+        
+        // タイムストップ中またはゲームオーバー時は新しいブロック生成と落下を停止
+        if (!this.isTimeStopActive && !isGameOver) {
             // ブロック生成タイマー更新
             this.nextBlockTimer += deltaTime;
             
@@ -556,6 +612,7 @@ class BlockManager {
         }
         
         // 現在のブロックの落下処理
+        const beforeCurrentBlocksCount = this.currentBlocks.length;
         this.currentBlocks = this.currentBlocks.filter(currentBlock => {
             // 破壊アニメーション更新
             if (currentBlock.update(deltaTime)) {
@@ -568,8 +625,8 @@ class BlockManager {
                 return true; // 継続
             }
             
-            // タイムストップ中は落下を停止
-            if (!this.isTimeStopActive) {
+            // タイムストップ中またはゲームオーバー時は落下を停止
+            if (!this.isTimeStopActive && !isGameOver) {
                 const fallDistance = (this.fallingSpeed * deltaTime) / 1000;
                 currentBlock.moveDown(fallDistance);
             }
@@ -581,6 +638,20 @@ class BlockManager {
                 (nextRow < CONFIG.GRID.ROWS && this.grid[nextRow][currentBlock.col])) {
                 // グリッドに固定
                 currentBlock.snapToGrid();
+                
+                // グリッドと座標の詳細な安全性チェック
+                if (!this.isValidGridPosition(currentBlock.row, currentBlock.col)) {
+                    console.warn('BlockManager: Invalid block position for grid placement:', {
+                        row: currentBlock.row,
+                        col: currentBlock.col,
+                        gridExists: !!this.grid,
+                        gridRowExists: this.grid && !!this.grid[currentBlock.row],
+                        gridRowLength: this.grid ? this.grid.length : 'N/A'
+                    });
+                    return false; // ブロックを削除
+                }
+                
+                // 安全にグリッドに配置
                 this.grid[currentBlock.row][currentBlock.col] = currentBlock;
                 this.blocks.push(currentBlock);
                 
@@ -595,8 +666,10 @@ class BlockManager {
             return true; // 継続
         });
         
+        
         // 破壊アニメーションの更新
         let blocksDestroyed = false;
+        const beforeCount = this.blocks.length;
         this.blocks = this.blocks.filter(block => {
             if (block.update(deltaTime)) {
                 // ブロックを削除（グリッドからも確実に削除）
@@ -609,6 +682,10 @@ class BlockManager {
             return true;
         });
         
+        if (blocksDestroyed) {
+            console.log(`BlockManager: Blocks destroyed. Before: ${beforeCount}, After: ${this.blocks.length}`);
+        }
+        
         // ブロックが破壊された場合、上のブロックを落下させる
         if (blocksDestroyed) {
             this.applyGravity();
@@ -618,14 +695,25 @@ class BlockManager {
         if (this.checkGameOver()) {
             return 'game_over';
         }
-        
         return 'playing';
     }
     
     spawnBlock(level) {
+        // 初期化チェック
+        if (!this.isInitialized || !this.grid) {
+            console.warn('BlockManager: Cannot spawn block - not initialized');
+            return;
+        }
+        
         // 利用可能な列を取得（現在落下中でない列）
         const availableCols = [];
         for (let col = 0; col < CONFIG.GRID.COLS; col++) {
+            // グリッドの安全性チェック
+            if (!this.isValidGridPosition(0, col)) {
+                console.warn('BlockManager: Invalid grid position during spawn:', {row: 0, col});
+                continue;
+            }
+            
             // 列が空いており、かつ現在落下中のブロックがその列にない
             if (!this.grid[0][col] && !this.isColumnOccupied(col)) {
                 availableCols.push(col);
@@ -646,10 +734,15 @@ class BlockManager {
         // 演算子に応じた色を選択
         const color = CONFIG.COLORS.BLOCKS[problem.operation] || '#95a5a6';
         
-        // 特殊ブロック判定：5%の確率で特殊ブロック、5%の確率でタイムストップブロック
+        // 特殊ブロック判定
         const random = Math.random();
-        const isSpecial = random < 0.05;
-        const isTimeStop = random >= 0.05 && random < 0.1; // 5-10%の範囲
+        // 対戦モードの場合は爆発ブロック確率を変更
+        const specialRate = this.specialBlockRate || 0.05; // デフォルト5%
+        const isSpecial = random < specialRate;
+        
+        // 対戦モード時はタイムストップブロックを無効化
+        const isVersusMode = this.game && this.game.isVersusMode;
+        const isTimeStop = !isVersusMode && random >= specialRate && random < specialRate + 0.05; // 特殊ブロックの後に5%の確率（対戦モード時は無効）
         
         // ブロック色の決定
         let blockColor = color;
@@ -677,7 +770,7 @@ class BlockManager {
         const destroyedBlocks = [];
         
         // 現在落下中のブロックをチェック
-        this.currentBlocks.forEach(currentBlock => {
+        this.currentBlocks.forEach((currentBlock, index) => {
             if (!currentBlock.isPenalty && !currentBlock.isTimeStop && this.calculator.checkAnswer(answer, currentBlock.problem.answer)) {
                 currentBlock.destroy();
                 destroyedBlocks.push(currentBlock);
@@ -689,10 +782,8 @@ class BlockManager {
             }
         });
         
-        // 破壊されたブロックはすぐには削除しない（アニメーション完了まで描画継続）
-        
         // すでに落ちているブロックをチェック
-        this.blocks.forEach(block => {
+        this.blocks.forEach((block, index) => {
             if (!block.isDestroying && !block.isPenalty && !block.isTimeStop && this.calculator.checkAnswer(answer, block.problem.answer)) {
                 block.destroy();
                 destroyedBlocks.push(block);
@@ -802,16 +893,27 @@ class BlockManager {
     }
     
     reset() {
+        console.log('BlockManager: Resetting...');
         this.blocks = [];
-        this.grid = this.createEmptyGrid();
         this.currentBlocks = [];
         this.nextBlockTimer = 0;
         this.hintTransformTimer = 0; // ヒント変化タイマーリセット
+        
+        // グリッドを再初期化
+        this.grid = this.createEmptyGrid();
+        this.isInitialized = true;
+        
+        console.log('BlockManager: Reset completed');
     }
     
     // ゲーム開始時の初期化
     resetForNewGame() {
         this.reset();
+        
+        // 対戦モード用の追加初期化
+        if (this.game && this.game.isVersusMode) {
+            console.log('BlockManager: Additional initialization for versus mode');
+        }
     }
     
     // 重力適用（上のブロックを下に落下させる）
@@ -851,11 +953,18 @@ class BlockManager {
     
     // 誤答時のペナルティブロック追加
     addPenaltyBlocks() {
-        // 難易度チェック：ノーマル以上でのみペナルティブロック機能有効
+        // 対戦モードまたは難易度チェック：ノーマル以上でのみペナルティブロック機能有効
         const difficultyName = this.difficulty?.name || '';
-        console.log('Difficulty check:', difficultyName, 'Enabled:', CONFIG.PENALTY.ENABLED_DIFFICULTIES);
+        const isVersusMode = this.game && this.game.isVersusMode;
         
-        if (!CONFIG.PENALTY.ENABLED_DIFFICULTIES.includes(difficultyName)) {
+        console.log('Penalty block check:', {
+            difficultyName, 
+            isVersusMode,
+            enabled: CONFIG.PENALTY.ENABLED_DIFFICULTIES
+        });
+        
+        // 対戦モードの場合は常に有効、通常モードは難易度制約あり
+        if (!isVersusMode && !CONFIG.PENALTY.ENABLED_DIFFICULTIES.includes(difficultyName)) {
             console.log('Penalty blocks disabled for difficulty:', difficultyName);
             return [];
         }
@@ -896,10 +1005,12 @@ class BlockManager {
             const penaltyBlock = new Block(
                 col, 
                 CONFIG.GRID.ROWS - 1, 
-                { expression: '', answer: null }, 
+                { expression: '', answer: null, operation: null }, 
                 '#8b8b8b', 
-                false, 
-                true
+                false, // isSpecial
+                true,  // isPenalty
+                false, // isTimeStop
+                false  // isHint
             );
             
             this.grid[CONFIG.GRID.ROWS - 1][col] = penaltyBlock;
@@ -922,6 +1033,9 @@ class BlockManager {
         const level = this.game?.level || 1;
         const levelModifier = CONFIG.PENALTY.LEVEL_MODIFIER * (level - 1);
         
+        // CPUの場合はログ出力（削減）
+        const isCPU = this.game?.isVersusMode && this.game?.versusSide === 'left';
+        
         // 重みを調整（後ろの要素ほど確率を上げる）
         const adjustedWeights = baseWeights.map((weight, index) => {
             const adjustment = index * levelModifier;
@@ -931,6 +1045,8 @@ class BlockManager {
         // 確率の正規化
         const totalWeight = adjustedWeights.reduce((sum, weight) => sum + Math.max(0, weight), 0);
         const normalizedWeights = adjustedWeights.map(weight => Math.max(0, weight) / totalWeight);
+        
+        // CPUデバッグログ削減
         
         // 重み付きランダム選択
         const random = Math.random();
@@ -958,14 +1074,24 @@ class BlockManager {
         return cols.sort((a, b) => a - b);
     }
     
-    // 特殊ブロック破壊時の連鎖爆発（ペナルティブロック対応）
-    chainExplosion(specialBlock) {
+    // 特殊ブロック破壊時の連鎖爆発（再帰対応）
+    chainExplosion(specialBlock, processedBlocks = new Set()) {
+        // 無限ループ防止：既に処理済みのブロックはスキップ
+        const blockKey = `${specialBlock.row}-${specialBlock.col}`;
+        if (processedBlocks.has(blockKey)) {
+            return [];
+        }
+        processedBlocks.add(blockKey);
+        
         const destroyedBlocks = [specialBlock];
+        const newSpecialBlocks = []; // 連鎖で発見された特殊ブロック
         const directions = [
             [-1, -1], [-1, 0], [-1, 1],  // 上段
             [0, -1],           [0, 1],   // 左右
             [1, -1],  [1, 0],  [1, 1]    // 下段
         ];
+        
+        console.log(`chainExplosion: 爆発ブロック (${specialBlock.row}, ${specialBlock.col}) の連鎖爆発開始`);
         
         directions.forEach(([rowOffset, colOffset]) => {
             const newRow = specialBlock.row + rowOffset;
@@ -977,12 +1103,36 @@ class BlockManager {
                 
                 const adjacentBlock = this.grid[newRow][newCol];
                 if (adjacentBlock && !adjacentBlock.isDestroying) {
+                    console.log(`chainExplosion: 隣接ブロック (${newRow}, ${newCol}) を破壊, isSpecial: ${adjacentBlock.isSpecial}, isTimeStop: ${adjacentBlock.isTimeStop}`);
+                    
+                    // 特殊ブロックの機能を発動
+                    if (adjacentBlock.isSpecial) {
+                        console.log('chainExplosion: 連鎖による爆発ブロック発見');
+                        newSpecialBlocks.push(adjacentBlock);
+                    } else if (adjacentBlock.isTimeStop) {
+                        console.log('chainExplosion: 連鎖によるタイムストップブロック発見 - 効果発動');
+                        this.activateTimeStop();
+                    }
+                    
                     adjacentBlock.destroy();
                     destroyedBlocks.push(adjacentBlock);
                 }
             }
         });
         
+        // 連鎖で発見された爆発ブロックを再帰的に処理
+        newSpecialBlocks.forEach(newSpecialBlock => {
+            console.log('chainExplosion: 連鎖爆発ブロックの再帰処理開始');
+            const chainBlocks = this.chainExplosion(newSpecialBlock, processedBlocks);
+            // 重複を避けて追加
+            chainBlocks.forEach(chainBlock => {
+                if (!destroyedBlocks.includes(chainBlock)) {
+                    destroyedBlocks.push(chainBlock);
+                }
+            });
+        });
+        
+        console.log(`chainExplosion: 完了. 合計破壊ブロック数: ${destroyedBlocks.length}`);
         return destroyedBlocks;
     }
     
@@ -1038,5 +1188,113 @@ class BlockManager {
         this.maxBlocks = Math.min(params.maxBlocks, 4); // 最大4個まで制限
         this.calculator.setRange(params.minNum, params.maxNum);
         this.calculator.setOperations(params.operations);
+    }
+    
+    // 対戦モード：爆発ブロック生成確率を設定
+    setSpecialBlockRate(rate) {
+        this.specialBlockRate = rate;
+    }
+    
+    // 対戦モード：攻撃ブロック（×ブロック）を追加（ペナルティブロックと同じ方式）
+    addAttackBlock(col) {
+        // まず全ての列で最上段チェック（ゲームオーバー判定）
+        for (let checkCol = 0; checkCol < CONFIG.GRID.COLS; checkCol++) {
+            if (this.grid[0][checkCol] && !this.grid[0][checkCol].isDestroying) {
+                return 'game_over';
+            }
+        }
+        
+        // 各列の既存ブロックを一段上げる（下から上へ処理）
+        for (let pushCol = 0; pushCol < CONFIG.GRID.COLS; pushCol++) {
+            for (let row = 0; row < CONFIG.GRID.ROWS - 1; row++) {
+                if (this.grid[row + 1][pushCol]) {
+                    const block = this.grid[row + 1][pushCol];
+                    this.grid[row + 1][pushCol] = null;
+                    block.row = row;
+                    block.y = row * CONFIG.GRID.CELL_SIZE;
+                    this.grid[row][pushCol] = block;
+                }
+            }
+        }
+        
+        // 最下段をクリア
+        for (let clearCol = 0; clearCol < CONFIG.GRID.COLS; clearCol++) {
+            this.grid[CONFIG.GRID.ROWS - 1][clearCol] = null;
+        }
+        
+        // 指定された列に×ブロックを配置
+        let targetCol = col;
+        
+        
+        // ×ブロックを作成
+        const attackBlock = new Block(
+            targetCol, // col
+            CONFIG.GRID.ROWS - 1, // row（最下段）
+            { expression: '×', answer: null, operation: null }, // problem
+            '#ff0000', // color (赤色)
+            false, // isSpecial
+            true, // isPenalty
+            false, // isTimeStop
+            false  // isHint
+        );
+        
+        // グリッドの最下段に配置
+        this.grid[CONFIG.GRID.ROWS - 1][targetCol] = attackBlock;
+        this.blocks.push(attackBlock);
+        
+        // ×ブロック追加後に重力を適用（下にブロックがなければ落下）
+        this.applyGravity();
+        
+        
+        return 'success';
+    }
+    
+    // CPU用：答えられるブロックのリストを取得
+    getAnswerableBlocks() {
+        const answerableBlocks = [];
+        
+        // 落下中のブロック
+        this.currentBlocks.forEach(block => {
+            if (!block.isPenalty && !block.isDestroying && block.problem) {
+                answerableBlocks.push(block);
+            }
+        });
+        
+        // グリッド上の固定ブロック
+        for (let row = 0; row < CONFIG.GRID.ROWS; row++) {
+            for (let col = 0; col < CONFIG.GRID.COLS; col++) {
+                const block = this.grid[row][col];
+                if (block && !block.isPenalty && !block.isDestroying && block.problem) {
+                    answerableBlocks.push(block);
+                }
+            }
+        }
+        
+        return answerableBlocks;
+    }
+    
+    // ブロックマネージャーのクリア処理
+    clear() {
+        console.log('BlockManager: Clearing all blocks and timers');
+        this.blocks = [];
+        this.currentBlocks = []; // 追加: 落下中ブロックもクリア
+        this.nextBlockTimer = 0;
+        this.hintTransformTimer = 0;
+        
+        // グリッドを再初期化
+        this.grid = this.createEmptyGrid();
+        this.isInitialized = true;
+        
+        // タイマーをクリア
+        if (this.blockIntervalId) {
+            clearInterval(this.blockIntervalId);
+            this.blockIntervalId = null;
+        }
+        if (this.hintIntervalId) {
+            clearInterval(this.hintIntervalId);
+            this.hintIntervalId = null;
+        }
+        
+        console.log('BlockManager: Clear completed');
     }
 }

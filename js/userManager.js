@@ -440,14 +440,10 @@ class UserManager {
         return usersArray;
     }
     
-    // 自動ユーザーデータ保存機能
+    // 自動ユーザーデータ保存機能（DownloadManagerに統合されたため無効化）
     autoSaveUserDataToFile() {
-        // 自動保存設定を確認
-        const autoSaveEnabled = localStorage.getItem('mathblocks_autosave') === 'true';
-        if (!autoSaveEnabled) {
-            console.log('ユーザーデータ自動保存は無効です');
-            return;
-        }
+        console.log('UserManager: 個別の自動保存は無効化されています。DownloadManagerを使用してください。');
+        return;
         
         // ゲストモードの場合は保存しない
         if (this.isGuestMode) {

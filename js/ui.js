@@ -1,5 +1,8 @@
 // UI管理クラス
 class UIManager {
+    // 静的フラグ（クラス全体で共有）
+    static isQuittingVersusGame = false;
+    
     constructor() {
         this.screens = {
             user: document.getElementById('userScreen'),
@@ -9,7 +12,11 @@ class UIManager {
             gameOver: document.getElementById('gameOverScreen'),
             score: document.getElementById('scoreScreen'),
             collection: document.getElementById('collectionScreen'),
-            userSettings: document.getElementById('userSettingsScreen')
+            userSettings: document.getElementById('userSettingsScreen'),
+            versusCpuSetup: document.getElementById('versusCpuSetupScreen'),
+            versusHumanSetup: document.getElementById('versusHumanSetupScreen'),
+            versusGame: document.getElementById('versusGameScreen'),
+            versusResult: document.getElementById('versusResultScreen')
         };
         
         this.elements = {
@@ -151,7 +158,48 @@ class UIManager {
             autoSaveEnabled: document.getElementById('autoSaveEnabled'),
             importScoresBtn: document.getElementById('importScoresBtn'),
             importUsersBtn: document.getElementById('importUsersBtn'),
-            jsonFileInput: document.getElementById('jsonFileInput')
+            jsonFileInput: document.getElementById('jsonFileInput'),
+            
+            // 対戦モード要素
+            versusDifficultyDisplay: document.getElementById('versusDifficultyDisplay'),
+            versusCpuStrength: document.getElementById('versusCpuStrength'),
+            versusTrainingDisplay: document.getElementById('versusTrainingDisplay'),
+            versusTrainingName: document.getElementById('versusTrainingName'),
+            cpuDescription: document.getElementById('cpuDescription'),
+            versusStartBtn: document.getElementById('versusStartBtn'),
+            backFromVersusSetupBtn: document.getElementById('backFromVersusSetupBtn'),
+            
+            // 2人対戦設定画面
+            versusHumanDifficultyDisplay: document.getElementById('versusHumanDifficultyDisplay'),
+            versusHumanTrainingDisplay: document.getElementById('versusHumanTrainingDisplay'),
+            versusHumanTrainingName: document.getElementById('versusHumanTrainingName'),
+            versusHumanStartBtn: document.getElementById('versusHumanStartBtn'),
+            backFromVersusHumanSetupBtn: document.getElementById('backFromVersusHumanSetupBtn'),
+            player1Name: document.getElementById('player1Name'),
+            player2Name: document.getElementById('player2Name'),
+            player1UserList: document.getElementById('player1UserList'),
+            player2UserList: document.getElementById('player2UserList'),
+            player1UserSelect: document.getElementById('player1UserSelect'),
+            player2UserSelect: document.getElementById('player2UserSelect'),
+            leftPlayerName: document.getElementById('leftPlayerName'),
+            rightPlayerName: document.getElementById('rightPlayerName'),
+            leftScore: document.getElementById('leftScore'),
+            rightScore: document.getElementById('rightScore'),
+            leftLevel: document.getElementById('leftLevel'),
+            rightLevel: document.getElementById('rightLevel'),
+            leftCombo: document.getElementById('leftCombo'),
+            rightCombo: document.getElementById('rightCombo'),
+            leftAnswerDisplay: document.getElementById('leftAnswerDisplay'),
+            rightAnswerDisplay: document.getElementById('rightAnswerDisplay'),
+            versusPauseBtn: document.getElementById('versusPauseBtn'),
+            versusQuitBtn: document.getElementById('versusQuitBtn'),
+            versusWinner: document.getElementById('versusWinner'),
+            leftFinalScore: document.getElementById('leftFinalScore'),
+            rightFinalScore: document.getElementById('rightFinalScore'),
+            leftFinalName: document.getElementById('leftFinalName'),
+            rightFinalName: document.getElementById('rightFinalName'),
+            versusRematchBtn: document.getElementById('versusRematchBtn'),
+            backFromVersusResultBtn: document.getElementById('backFromVersusResultBtn')
         };
         
         this.selectedMode = null;
@@ -163,6 +211,7 @@ class UIManager {
         this.scoreManager = null; // スコアマネージャー参照
         this.userManager = null; // ユーザーマネージャー参照
         this.gameInstance = null; // ゲームインスタンス参照
+        this.versusGame = null; // 対戦ゲームインスタンス参照
         
         // 隠し機能用のクリックカウンタ
         this.scoreAttackClickCount = 0;
@@ -171,6 +220,7 @@ class UIManager {
         this.cButtonClickTimer = null;
         
         this.setupEventListeners();
+        console.log('DEBUG: UIManager initialized, elements.startButton:', !!this.elements.startButton);
     }
     
     setupEventListeners() {
@@ -238,6 +288,91 @@ class UIManager {
             this.elements.backFromSettingsBtn.addEventListener('click', () => this.showScreen('start'));
         }
         
+        // 対戦モード設定画面
+        if (this.elements.versusStartBtn) {
+            this.elements.versusStartBtn.addEventListener('click', () => this.startVersusGame());
+        }
+        if (this.elements.backFromVersusSetupBtn) {
+            this.elements.backFromVersusSetupBtn.addEventListener('click', () => this.showScreen('start'));
+        }
+        
+        // 2人対戦設定画面
+        if (this.elements.versusHumanStartBtn) {
+            this.elements.versusHumanStartBtn.addEventListener('click', () => this.startVersusHumanGame());
+        }
+        if (this.elements.backFromVersusHumanSetupBtn) {
+            this.elements.backFromVersusHumanSetupBtn.addEventListener('click', () => this.showScreen('start'));
+        }
+        
+        // 開始ボタン
+        if (this.elements.startButton) {
+            console.log('DEBUG: Start button found, setting up event listener');
+            this.elements.startButton.addEventListener('click', () => {
+                console.log('DEBUG: Start button clicked!');
+                console.log('DEBUG: selectedMode:', this.selectedMode);
+                console.log('DEBUG: selectedDifficulty:', this.selectedDifficulty);
+                console.log('DEBUG: this.game exists:', !!this.game);
+                
+                const settings = this.getGameSettings();
+                console.log('Start button clicked with settings:', settings);
+                
+                // 対戦モードの場合は設定画面に遷移
+                if (settings.mode === 'versus_cpu') {
+                    console.log('DEBUG: Starting CPU versus');
+                    this.showVersusSetup(settings);
+                } else if (settings.mode === 'versus_human') {
+                    console.log('DEBUG: Starting human versus');
+                    this.showVersusHumanSetup(settings);
+                } else {
+                    console.log('DEBUG: Starting normal game');
+                    // 通常ゲームを開始
+                    if (this.game) {
+                        console.log('DEBUG: Calling startWithSettings');
+                        this.game.startWithSettings(settings);
+                        console.log('DEBUG: Showing game screen');
+                        this.showScreen('game');
+                    } else {
+                        console.log('ERROR: this.game is null or undefined');
+                    }
+                }
+            });
+        } else {
+            console.log('ERROR: Start button not found!');
+        }
+        
+        // プレイヤータイプ選択
+        const player1TypeRadios = document.querySelectorAll('input[name="player1Type"]');
+        const player2TypeRadios = document.querySelectorAll('input[name="player2Type"]');
+        
+        player1TypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => this.updatePlayerTypeSelection(1, radio.value));
+        });
+        player2TypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => this.updatePlayerTypeSelection(2, radio.value));
+        });
+        
+        // 対戦ゲーム画面（イベントハンドラー設定は一度だけ）
+        if (this.elements.versusPauseBtn && !this.elements.versusPauseBtn.hasAttribute('data-handler-set')) {
+            this.elements.versusPauseBtn.addEventListener('click', () => this.toggleVersusPause());
+            this.elements.versusPauseBtn.setAttribute('data-handler-set', 'true');
+        }
+        if (this.elements.versusQuitBtn && !this.elements.versusQuitBtn.hasAttribute('data-handler-set')) {
+            this.elements.versusQuitBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this.quitVersusGame();
+            });
+            this.elements.versusQuitBtn.setAttribute('data-handler-set', 'true');
+        }
+        
+        // 対戦結果画面
+        if (this.elements.versusRematchBtn) {
+            this.elements.versusRematchBtn.addEventListener('click', () => this.versusRematch());
+        }
+        if (this.elements.backFromVersusResultBtn) {
+            this.elements.backFromVersusResultBtn.addEventListener('click', () => this.showScreen('start'));
+        }
+        
         // モード選択
         this.elements.modeButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -289,9 +424,13 @@ class UIManager {
         this.elements.forceHintBlockBtn.addEventListener('click', () => this.forceGenerateHintBlock());
         this.elements.testHintBtn.addEventListener('click', () => this.testHintGeneration());
         
-        // スコアボード
-        this.elements.viewScoresBtn.addEventListener('click', () => this.showScoreScreen());
-        this.elements.viewScoresFromGameOverBtn.addEventListener('click', () => this.showScoreScreen());
+        // スコアボード（重複登録防止）
+        this.elements.viewScoresBtn.removeEventListener('click', this.scoreScreenHandler);
+        this.elements.viewScoresFromGameOverBtn.removeEventListener('click', this.scoreScreenHandler);
+        
+        this.scoreScreenHandler = () => this.showScoreScreen();
+        this.elements.viewScoresBtn.addEventListener('click', this.scoreScreenHandler);
+        this.elements.viewScoresFromGameOverBtn.addEventListener('click', this.scoreScreenHandler);
         this.elements.sortFilter.addEventListener('change', () => this.updateScoreTable());
         this.elements.exportScoresBtn.addEventListener('click', () => this.exportScores());
         this.elements.backFromScoresBtn.addEventListener('click', () => this.backToMenu());
@@ -338,11 +477,15 @@ class UIManager {
     }
     
     selectMode(mode) {
+        console.log('DEBUG: selectMode called with:', mode);
         this.selectedMode = mode;
         this.elements.modeButtons.forEach(btn => {
             btn.classList.toggle('selected', btn.dataset.mode === mode);
         });
+        
+        // 対戦モードも通常モードと同様にゲーム開始ボタンで開始
         this.checkStartEnabled();
+        console.log('DEBUG: selectedMode after setting:', this.selectedMode);
         
         // スコアアタックモードで5回クリックの隠し機能
         if (mode === 'score') {
@@ -367,12 +510,14 @@ class UIManager {
     }
     
     selectDifficulty(difficulty) {
+        console.log('DEBUG: selectDifficulty called with:', difficulty);
         this.selectedDifficulty = difficulty;
         this.elements.difficultyButtons.forEach(btn => {
             btn.classList.toggle('selected', btn.dataset.difficulty === difficulty);
         });
         // 特訓モードの選択状態は維持
         this.checkStartEnabled();
+        console.log('DEBUG: selectedDifficulty after setting:', this.selectedDifficulty);
     }
     
     selectTraining(training) {
@@ -412,8 +557,15 @@ class UIManager {
         const hasOperation = true;
         const validRange = true; // デフォルト値で有効
         
+        console.log('DEBUG: checkStartEnabled - hasMode:', hasMode, 'hasDifficulty:', hasDifficulty);
+        console.log('DEBUG: selectedMode:', this.selectedMode, 'selectedDifficulty:', this.selectedDifficulty);
+        
         if (this.elements.startButton) {
-            this.elements.startButton.disabled = !(hasMode && hasDifficulty && hasOperation && validRange);
+            const shouldEnable = hasMode && hasDifficulty && hasOperation && validRange;
+            console.log('DEBUG: Setting startButton.disabled to:', !shouldEnable);
+            this.elements.startButton.disabled = !shouldEnable;
+        } else {
+            console.log('ERROR: startButton element not found in checkStartEnabled');
         }
     }
     
@@ -549,7 +701,9 @@ class UIManager {
         // モード表示
         const modeNames = {
             'score': 'スコアアタック',
-            'time': 'タイムアタック'
+            'time': 'タイムアタック',
+            'CPU対戦': 'CPU対戦',
+            '2P対戦': '2P対戦'
         };
         this.elements.currentMode.textContent = modeNames[this.selectedMode] || '-';
         
@@ -806,11 +960,24 @@ class UIManager {
     }
     
     showScoreScreen() {
+        // 重複実行防止（0.5秒以内の実行は無視）
+        const now = Date.now();
+        if (this.lastScoreScreenTime && (now - this.lastScoreScreenTime) < 500) {
+            console.log('showScoreScreen：重複実行のためスキップ');
+            return;
+        }
+        this.lastScoreScreenTime = now;
+        
         this.showScreen('score');
         this.updateScoreTable();
         
-        // スコアボード表示時に統合データの自動保存実行
-        this.autoSaveAllData();
+        // スコアボード表示時に統合データの自動保存実行（DownloadManager経由）
+        if (window.downloadManager) {
+            window.downloadManager.triggerAutoSave();
+        } else {
+            console.warn('DownloadManager not available, falling back to direct auto save');
+            this.autoSaveAllData();
+        }
     }
     
     getSortFunction(sortType) {
@@ -867,9 +1034,9 @@ class UIManager {
             // 平均時間をフォーマット（小数点1桁、秒）
             const avgTimeStr = score.avgAnswerTime ? `${score.avgAnswerTime.toFixed(1)}s` : '-';
             
-            // ゲーム時間をフォーマット（分:秒）
+            // ゲーム時間をフォーマット（分:秒.小数点第1位）
             const gameTimeStr = (score.gameTime !== undefined && score.gameTime !== null) ? 
-                `${Math.floor(score.gameTime / 60)}:${String(score.gameTime % 60).padStart(2, '0')}` : '0:00';
+                `${Math.floor(score.gameTime / 60)}:${(score.gameTime % 60).toFixed(1).padStart(4, '0')}` : '0:00.0';
             
             // 特訓モード表示用の文字列を生成
             let trainingModeStr = '-';
@@ -933,6 +1100,14 @@ class UIManager {
             console.log('統合データ自動保存は無効です');
             return;
         }
+        
+        // 重複実行防止（1秒以内の実行は無視）
+        const now = Date.now();
+        if (this.lastAutoSaveTime && (now - this.lastAutoSaveTime) < 1000) {
+            console.log('統合データ自動保存：重複実行のためスキップ');
+            return;
+        }
+        this.lastAutoSaveTime = now;
         
         try {
             // 統合データオブジェクトを作成
@@ -1173,6 +1348,7 @@ class UIManager {
     // ゲームインスタンスを設定
     setGameInstance(gameInstance) {
         this.gameInstance = gameInstance;
+        this.game = gameInstance; // 互換性のため両方に設定
     }
     
     // ユーザー選択画面のメソッド
@@ -1566,6 +1742,146 @@ class UIManager {
         this.showRegisterTab();
     }
     
+    // 対戦モード用メソッド
+    showVersusCpuSetup() {
+        if (!this.selectedDifficulty) {
+            alert('まず難易度を選択してください。');
+            return;
+        }
+        
+        // 現在の設定を表示
+        const difficultyConfig = CONFIG.DIFFICULTY[this.selectedDifficulty];
+        const cpuConfig = CONFIG.VERSUS.CPU_DIFFICULTY[this.selectedDifficulty];
+        
+        if (this.elements.versusDifficultyDisplay) {
+            this.elements.versusDifficultyDisplay.textContent = difficultyConfig.name;
+        }
+        if (this.elements.versusCpuStrength) {
+            this.elements.versusCpuStrength.textContent = cpuConfig.name;
+        }
+        if (this.elements.cpuDescription) {
+            this.elements.cpuDescription.textContent = cpuConfig.description;
+        }
+        
+        // 特訓モードの表示
+        if (this.selectedTraining && this.elements.versusTrainingDisplay) {
+            const trainingConfig = CONFIG.TRAINING_MODES[this.selectedTraining];
+            this.elements.versusTrainingDisplay.style.display = 'block';
+            this.elements.versusTrainingName.textContent = trainingConfig.name;
+        } else if (this.elements.versusTrainingDisplay) {
+            this.elements.versusTrainingDisplay.style.display = 'none';
+        }
+        
+        this.showScreen('versusCpuSetup');
+    }
+    
+    startVersusGame() {
+        console.log('startVersusGame called', {
+            mode: this.selectedMode,
+            difficulty: this.selectedDifficulty,
+            training: this.selectedTraining,
+            cpuLevel: this.selectedDifficulty
+        });
+        
+        if (!this.selectedDifficulty) {
+            alert('難易度を選択してください。');
+            return;
+        }
+        
+        const mode = this.selectedMode;
+        const difficulty = this.selectedDifficulty;
+        const training = this.selectedTraining;
+        // ゲーム難易度をCPU難易度として使用
+        const cpuLevel = this.selectedDifficulty;
+        
+        // 対戦ゲームインスタンスを作成
+        console.log('Creating VersusGame with:', { mode, difficulty, training, cpuLevel });
+        this.versusGame = new VersusGame(mode, difficulty, training, cpuLevel);
+        
+        // プレイヤー名を設定
+        if (mode === GameMode.VERSUS_CPU) {
+            this.elements.leftPlayerName.textContent = 'CPU';
+            this.elements.rightPlayerName.textContent = this.userManager?.getCurrentUser()?.username || 'プレイヤー';
+            this.elements.leftFinalName.textContent = 'CPU';
+            this.elements.rightFinalName.textContent = this.userManager?.getCurrentUser()?.username || 'プレイヤー';
+        } else {
+            this.elements.leftPlayerName.textContent = 'プレイヤー1';
+            this.elements.rightPlayerName.textContent = 'プレイヤー2';
+            this.elements.leftFinalName.textContent = 'プレイヤー1';
+            this.elements.rightFinalName.textContent = 'プレイヤー2';
+        }
+        
+        // 対戦画面を表示
+        this.showScreen('versusGame');
+        
+        // ゲーム開始
+        this.versusGame.start();
+    }
+    
+    toggleVersusPause() {
+        if (this.versusGame) {
+            this.versusGame.pause();
+            this.elements.versusPauseBtn.textContent = 
+                this.elements.versusPauseBtn.textContent === '一時停止' ? '再開' : '一時停止';
+        }
+    }
+    
+    quitVersusGame() {
+        // 静的フラグで絶対に重複実行を防ぐ
+        if (UIManager.isQuittingVersusGame) {
+            console.log('quitVersusGame: Already in progress, ignoring');
+            return false;
+        }
+        
+        console.log('quitVersusGame: Starting quit process');
+        UIManager.isQuittingVersusGame = true;
+        
+        try {
+            const confirmed = confirm('対戦を終了しますか？');
+            console.log('quitVersusGame: User confirmed:', confirmed);
+            
+            if (confirmed) {
+                if (this.versusGame) {
+                    this.versusGame.destroy();
+                    this.versusGame = null;
+                }
+                this.showScreen('start');
+                console.log('quitVersusGame: Successfully returned to start screen');
+            }
+        } catch (error) {
+            console.error('quitVersusGame: Error occurred:', error);
+        } finally {
+            // 2秒後にフラグをリセット（確実に処理が完了してから）
+            setTimeout(() => {
+                UIManager.isQuittingVersusGame = false;
+                console.log('quitVersusGame: Flag reset');
+            }, 2000);
+        }
+        
+        return false; // イベント伝播を停止
+    }
+    
+    versusRematch() {
+        // 同じ設定で再戦
+        this.showScreen('versusGame');
+        this.startVersusGame();
+    }
+    
+    // 対戦用のスコア・ステータス更新メソッド
+    updateVersusDisplay(side, stats) {
+        const prefix = side === 'left' ? 'left' : 'right';
+        
+        if (this.elements[`${prefix}Score`]) {
+            this.elements[`${prefix}Score`].textContent = stats.score || 0;
+        }
+        if (this.elements[`${prefix}Level`]) {
+            this.elements[`${prefix}Level`].textContent = stats.level || 1;
+        }
+        if (this.elements[`${prefix}Combo`]) {
+            this.elements[`${prefix}Combo`].textContent = stats.combo || 0;
+        }
+    }
+    
     // 新しい統計表示メソッド
     updateUserSettingsDisplay() {
         if (!this.userManager) return;
@@ -1659,6 +1975,144 @@ class UIManager {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    }
+    
+    // 2人対戦設定画面を表示
+    showVersusHumanSetup(settings) {
+        this.showScreen('versusHumanSetup');
+        
+        // 現在の設定を表示
+        if (this.elements.versusHumanDifficultyDisplay) {
+            this.elements.versusHumanDifficultyDisplay.textContent = CONFIG.DIFFICULTY[settings.difficulty]?.name || settings.difficulty;
+        }
+        
+        // 特訓モードの表示
+        if (settings.training) {
+            const trainingConfig = CONFIG.TRAINING_MODES[settings.training];
+            if (this.elements.versusHumanTrainingDisplay) {
+                this.elements.versusHumanTrainingDisplay.style.display = 'block';
+            }
+            if (this.elements.versusHumanTrainingName) {
+                this.elements.versusHumanTrainingName.textContent = trainingConfig?.name || settings.training;
+            }
+        } else {
+            if (this.elements.versusHumanTrainingDisplay) {
+                this.elements.versusHumanTrainingDisplay.style.display = 'none';
+            }
+        }
+        
+        // 登録ユーザーリストを更新
+        this.updatePlayerUserLists();
+    }
+    
+    // プレイヤータイプ選択の更新
+    updatePlayerTypeSelection(playerNum, type) {
+        const userSelectElement = playerNum === 1 ? this.elements.player1UserSelect : this.elements.player2UserSelect;
+        const nameInputElement = playerNum === 1 ? this.elements.player1Name : this.elements.player2Name;
+        
+        if (type === 'registered') {
+            userSelectElement.style.display = 'block';
+            nameInputElement.style.display = 'none';
+        } else {
+            userSelectElement.style.display = 'none';
+            nameInputElement.style.display = 'block';
+        }
+    }
+    
+    // プレイヤーのユーザーリストを更新
+    updatePlayerUserLists() {
+        if (!this.userManager) return;
+        
+        const users = this.userManager.getAllUsers();
+        
+        // プレイヤー1のリスト
+        if (this.elements.player1UserList) {
+            this.elements.player1UserList.innerHTML = '<option value="">ユーザーを選択</option>';
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.username;
+                option.textContent = user.username;
+                this.elements.player1UserList.appendChild(option);
+            });
+        }
+        
+        // プレイヤー2のリスト  
+        if (this.elements.player2UserList) {
+            this.elements.player2UserList.innerHTML = '<option value="">ユーザーを選択</option>';
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.username;
+                option.textContent = user.username;
+                this.elements.player2UserList.appendChild(option);
+            });
+        }
+    }
+    
+    // 2人対戦ゲーム開始
+    startVersusHumanGame() {
+        // プレイヤー設定を取得
+        const player1Type = document.querySelector('input[name="player1Type"]:checked').value;
+        const player2Type = document.querySelector('input[name="player2Type"]:checked').value;
+        
+        let player1Name = 'プレイヤー1';
+        let player2Name = 'プレイヤー2';
+        
+        if (player1Type === 'registered') {
+            const selectedUser = this.elements.player1UserList.value;
+            if (selectedUser) {
+                player1Name = selectedUser;
+            } else {
+                alert('プレイヤー1のユーザーを選択してください');
+                return;
+            }
+        } else {
+            player1Name = this.elements.player1Name.value.trim() || 'プレイヤー1';
+        }
+        
+        if (player2Type === 'registered') {
+            const selectedUser = this.elements.player2UserList.value;
+            if (selectedUser) {
+                player2Name = selectedUser;
+            } else {
+                alert('プレイヤー2のユーザーを選択してください');
+                return;
+            }
+        } else {
+            player2Name = this.elements.player2Name.value.trim() || 'プレイヤー2';
+        }
+        
+        // プレイヤー名を保存
+        this.versusPlayerNames = {
+            player1: player1Name,
+            player2: player2Name,
+            player1Type: player1Type,
+            player2Type: player2Type
+        };
+        
+        // ゲーム設定を取得
+        const settings = this.getGameSettings();
+        settings.mode = GameMode.VERSUS_HUMAN;
+        
+        // 対戦ゲームを開始
+        this.startVersusGameWithPlayers(settings);
+    }
+    
+    // プレイヤー名付きで対戦ゲーム開始
+    startVersusGameWithPlayers(settings) {
+        this.showScreen('versusGame');
+        
+        // プレイヤー名を表示
+        if (this.elements.leftPlayerName && this.versusPlayerNames) {
+            this.elements.leftPlayerName.textContent = this.versusPlayerNames.player1;
+        }
+        if (this.elements.rightPlayerName && this.versusPlayerNames) {
+            this.elements.rightPlayerName.textContent = this.versusPlayerNames.player2;
+        }
+        
+        // ゲーム開始
+        const cpuLevel = settings.difficulty; // 2人対戦ではCPUレベルは使わないが、互換性のため
+        this.versusGame = new VersusGame(settings.mode, settings.difficulty, settings.training, cpuLevel, this.versusPlayerNames);
+        this.versusGame.start();
     }
 }
 

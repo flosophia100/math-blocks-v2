@@ -44,16 +44,22 @@ class Game {
         this.questionsAnswered = 0;
         this.startTime = 0;
         
+        // 対戦モード用
+        this.isVersusMode = false;
+        this.versusSide = null; // 'left' or 'right'
+        this.opponent = null; // 対戦相手のゲームインスタンス
+        this.gameOverCallback = null;
+        
         this.setupEventListeners();
     }
     
     setupEventListeners() {
-        // 入力マネージャーのコールバック設定
+        // 入力マネージャーのコールバック設定（対戦モードでは後で上書きされる可能性がある）
         this.inputManager.setAnswerCallback((answer) => this.handleAnswer(answer));
         
-        // Cボタン5回クリックでデバッグパネル表示
+        // Cボタン5回クリックでデバッグパネル表示（UIManagerが存在する場合のみ）
         this.inputManager.setCButtonCallback(() => {
-            if (this.state === GameState.PLAYING) {
+            if (this.state === GameState.PLAYING && this.uiManager) {
                 this.uiManager.cButtonClickCount++;
                 
                 // タイマーリセット
@@ -69,24 +75,38 @@ class Game {
             }
         });
         
-        // UIボタンのイベント
-        this.uiManager.elements.startButton.addEventListener('click', () => this.startGame());
-        this.uiManager.elements.pauseBtn.addEventListener('click', () => this.togglePause());
-        this.uiManager.elements.quitBtn.addEventListener('click', () => this.quitGame());
-        this.uiManager.elements.retryBtn.addEventListener('click', () => this.retry());
-        this.uiManager.elements.backToMenuBtn.addEventListener('click', () => this.backToMenu());
+        // UIボタンのイベント（対戦モードでは使用しない）
+        // 開始ボタンはUIManagerで処理するため、ここでは設定しない
+        if (this.uiManager && this.uiManager.elements.pauseBtn) {
+            this.uiManager.elements.pauseBtn.addEventListener('click', () => this.togglePause());
+        }
+        if (this.uiManager && this.uiManager.elements.quitBtn) {
+            this.uiManager.elements.quitBtn.addEventListener('click', () => this.quitGame());
+        }
+        if (this.uiManager && this.uiManager.elements.retryBtn) {
+            this.uiManager.elements.retryBtn.addEventListener('click', () => this.retry());
+        }
+        if (this.uiManager && this.uiManager.elements.backToMenuBtn) {
+            this.uiManager.elements.backToMenuBtn.addEventListener('click', () => this.backToMenu());
+        }
         
-        // デバッグコールバック設定
-        this.uiManager.setDebugCallback((params) => this.applyDebugSettings(params));
+        // デバッグコールバック設定（UIManagerが存在する場合のみ）
+        if (this.uiManager) {
+            this.uiManager.setDebugCallback((params) => this.applyDebugSettings(params));
+        }
         
-        // スコアマネージャーを設定
-        this.uiManager.setScoreManager(this.scoreManager);
+        // スコアマネージャーを設定（UIManagerが存在する場合のみ）
+        if (this.uiManager) {
+            this.uiManager.setScoreManager(this.scoreManager);
+        }
     }
     
     // ユーザーマネージャーを設定
     setUserManager(userManager) {
         this.userManager = userManager;
-        this.uiManager.setUserManager(userManager);
+        if (this.uiManager) {
+            this.uiManager.setUserManager(userManager);
+        }
         
         // 初期画面の決定
         this.updateInitialScreen();
@@ -94,7 +114,7 @@ class Game {
     
     // 初期画面を決定
     updateInitialScreen() {
-        if (!this.userManager) return;
+        if (!this.userManager || !this.uiManager) return;
         
         // ユーザー表示を更新
         this.uiManager.updateUserDisplay();
@@ -103,7 +123,9 @@ class Game {
         if (this.userManager.isGuest() && !this.userManager.getCurrentUser()) {
             this.uiManager.showScreen('user');
         } else {
+            if (this.uiManager) {
             this.uiManager.showScreen('start');
+        }
         }
         
         // ESCキーで一時停止、Gキーでゲームオーバーテスト
@@ -121,8 +143,15 @@ class Game {
     
     startGame() {
         // ゲーム設定を取得
-        const settings = this.uiManager.getGameSettings();
+        const settings = this.uiManager ? this.uiManager.getGameSettings() : null;
         this.mode = settings.mode;
+        
+        // 対戦モードの場合はUIManagerで処理されるため、ここでは通常ゲームのみ処理
+        if (this.mode === GameMode.VERSUS_CPU || this.mode === GameMode.VERSUS_HUMAN) {
+            // 対戦モードは既にUIManagerで処理済み
+            return;
+        }
+        
         this.difficulty = CONFIG.DIFFICULTY[settings.difficulty];
         
         // 計算機の設定
@@ -169,37 +198,110 @@ class Game {
     }
     
     gameLoop() {
-        if (this.state !== GameState.PLAYING && this.state !== GameState.PAUSED && this.state !== GameState.GAME_OVER) {
-            return;
-        }
-        
         const currentTime = performance.now();
         const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
         
+        // デバッグ用: ゲームループのカウンター
+        // デバッグログを削除（パフォーマンス向上のため）
+        
+        // 対戦モードまたは通常の動作状態では常に更新を継続
         if (this.state === GameState.PLAYING) {
-            this.update(deltaTime);
-            this.render();
+            try {
+                this.update(deltaTime);
+                this.render();
+            } catch (error) {
+                // ログシステムを使用してエラー頻度を制御
+                if (window.logger) {
+                    window.logger.error('GameLoop', `Game[${this.versusSide}]: Error in update/render`, {
+                        error: error.message,
+                        stack: error.stack,
+                        versusSide: this.versusSide
+                    });
+                }
+                // 連続エラーを防ぐために一時停止
+                this.errorCount = (this.errorCount || 0) + 1;
+                if (this.errorCount > 10) {
+                    console.warn(`Game[${this.versusSide}]: Too many errors, pausing game loop`);
+                    this.state = GameState.PAUSED;
+                    this.errorCount = 0;
+                }
+            }
         } else if (this.state === GameState.PAUSED) {
             // 一時停止時は描画のみ継続（一時停止画面表示）
-            this.render();
-        } else if (this.state === GameState.GAME_OVER && this.gameOverExplosion) {
-            // ゲームオーバー時でも爆発エフェクト中はアニメーション更新
-            this.updateAnimations(deltaTime);
-            this.render();
+            try {
+                this.render();
+            } catch (error) {
+                if (window.logger) {
+                    window.logger.error('GameLoop', `Game[${this.versusSide}]: Error in render (paused)`, {
+                        error: error.message,
+                        stack: error.stack
+                    });
+                }
+            }
+        } else if (this.state === GameState.GAME_OVER) {
+            if (this.gameOverExplosion) {
+                // ゲームオーバー時でも爆発エフェクト中はアニメーション更新
+                try {
+                    this.updateAnimations(deltaTime);
+                    this.render();
+                } catch (error) {
+                    if (window.logger) {
+                        window.logger.error('GameLoop', `Game[${this.versusSide}]: Error in explosion animation`, {
+                            error: error.message,
+                            stack: error.stack
+                        });
+                    }
+                }
+            } else if (this.isVersusMode) {
+                // 対戦モードでのゲームオーバー時は描画のみ継続（処理は停止）
+                try {
+                    this.render();
+                } catch (error) {
+                    if (window.logger) {
+                        window.logger.error('GameLoop', `Game[${this.versusSide}]: Error in versus render`, {
+                            error: error.message,
+                            stack: error.stack
+                        });
+                    }
+                }
+            }
+        } else if (this.isVersusMode && this.state !== GameState.GAME_OVER) {
+            // 対戦モードの通常状態時のみ描画を継続（GAME_OVER時は上の条件で処理済み）
+            try {
+                this.render();
+            } catch (error) {
+                if (window.logger) {
+                    window.logger.error('GameLoop', `Game[${this.versusSide}]: Error in versus mode render`, {
+                        error: error.message,
+                        stack: error.stack
+                    });
+                }
+            }
         }
         
-        requestAnimationFrame(() => this.gameLoop());
+        // 対戦モードまたは通常モードで継続
+        if (this.isVersusMode || this.state !== GameState.MENU) {
+            requestAnimationFrame(() => this.gameLoop());
+        } else {
+            // デバッグログを削除
+        }
     }
     
     update(deltaTime) {
         // ゲーム時間更新
         this.gameTime += deltaTime / 1000;
         
+        // デバッグ用: updateメソッドの呼び出しを確認
+        if (!this.updateCounter) this.updateCounter = 0;
+        this.updateCounter++;
+        
         // タイムアタックモードの時間表示とタイムアップチェック
         if (this.mode === GameMode.TIME) {
             const remainingTime = CONFIG.TIME_ATTACK.DURATION - this.gameTime;
-            this.uiManager.updateTime(Math.max(0, remainingTime));
+            if (this.uiManager) {
+                this.uiManager.updateTime(Math.max(0, remainingTime));
+            }
             
             // 時間切れチェック
             if (remainingTime <= 0) {
@@ -211,15 +313,16 @@ class Game {
         // ブロックの更新
         const result = this.blockManager.update(deltaTime, this.level);
         
-        // タイムストップ状態の更新
-        const timeStopStatus = this.blockManager.getTimeStopStatus();
-        this.uiManager.updateTimeStopDisplay(timeStopStatus);
+        // タイムストップ状態の更新（対戦モードではuiManagerがnullのためスキップ）
+        if (this.uiManager) {
+            const timeStopStatus = this.blockManager.getTimeStopStatus();
+            this.uiManager.updateTimeStopDisplay(timeStopStatus);
+        }
         
         // アニメーションの更新
         this.updateAnimations(deltaTime);
         
         if (result === 'game_over') {
-            console.log('Game over triggered by block manager update');
             this.gameOver();
         }
     }
@@ -234,6 +337,10 @@ class Game {
             return;
         }
         
+        // デバッグ用: render の実行を確認
+        if (!this.renderCounter) this.renderCounter = 0;
+        this.renderCounter++;
+        
         // ブロックを描画
         this.blockManager.draw(this.ctx, 0, 0);
         
@@ -242,12 +349,20 @@ class Game {
     }
     
     handleAnswer(answer) {
-        if (this.state !== GameState.PLAYING) return;
+        if (this.state !== GameState.PLAYING && !this.isVersusMode) {
+            console.log('handleAnswer called but game not playing, state:', this.state);
+            return;
+        }
         
-        // 答えをチェック
-        const destroyedBlocks = this.blockManager.checkAnswer(answer);
+        // CPU判定変数は削除（使用されていないため）
+        
+        try {
+            // 答えをチェック
+            const destroyedBlocks = this.blockManager.checkAnswer(answer);
+            
         
         if (destroyedBlocks.length > 0) {
+            
             // 回答時間を計算（最初に破壊されたブロックの作成時刻から現在まで）
             const currentTime = performance.now();
             const firstBlock = destroyedBlocks[0];
@@ -278,6 +393,15 @@ class Game {
             this.combo++;
             this.maxCombo = Math.max(this.maxCombo, this.combo);
             
+            // 対戦モード：相手に×ブロックを送る
+            if (this.isVersusMode && this.opponent) {
+                try {
+                    this.sendAttackToOpponent();
+                } catch (error) {
+                    console.error(`Error sending attack block:`, error);
+                }
+            }
+            
             // スコア計算（複数ブロック破壊ボーナス）
             allDestroyedBlocks.forEach(block => {
                 this.calculateScore(block);
@@ -299,9 +423,17 @@ class Game {
             }
             
             // UI更新
-            this.uiManager.updateScore(this.score);
-            this.uiManager.updateCombo(this.combo);
-            this.uiManager.updateStats(this.correctAnswers, this.wrongAnswers, this.answerTimes);
+            if (this.isVersusMode) {
+                // 対戦モードの場合は直接要素を更新
+                this.updateVersusDisplay();
+            } else {
+                // 通常モードのUI更新
+                if (this.uiManager) {
+                    this.uiManager.updateScore(this.score);
+                    this.uiManager.updateCombo(this.combo);
+                    this.uiManager.updateStats(this.correctAnswers, this.wrongAnswers, this.answerTimes);
+                }
+            }
             
             // コンボエフェクト
             if (this.combo >= 5) {
@@ -312,16 +444,31 @@ class Game {
             this.checkLevelUp();
         } else {
             // 不正解
+            
             this.wrongAnswers++;
             this.combo = 0;
-            this.uiManager.updateCombo(0);
+            
+            // コンボ更新
+            if (this.isVersusMode) {
+                this.updateVersusDisplay();
+            } else if (this.uiManager) {
+                this.uiManager.updateCombo(0);
+            }
             
             // スコア減点（現在スコアの10%、最低10点）
             const penalty = Math.max(10, Math.floor(this.score * 0.1));
             this.score = Math.max(0, this.score - penalty);
-            this.uiManager.updateScore(this.score);
             
-            // ペナルティブロック追加
+            // スコア減点ログ（必要時のみ）
+            
+            // UI更新
+            if (this.isVersusMode) {
+                this.updateVersusDisplay();
+            } else if (this.uiManager) {
+                this.uiManager.updateScore(this.score);
+            }
+            
+            // ペナルティブロック追加（対戦モードでも有効）
             const penaltyResult = this.blockManager.addPenaltyBlocks();
             if (penaltyResult === 'game_over') {
                 console.log('Game over triggered by penalty blocks');
@@ -330,10 +477,24 @@ class Game {
             }
             
             // 統計更新
-            this.uiManager.updateStats(this.correctAnswers, this.wrongAnswers, this.answerTimes);
+            if (!this.isVersusMode && this.uiManager) {
+                this.uiManager.updateStats(this.correctAnswers, this.wrongAnswers, this.answerTimes);
+            }
             
             // ×印エフェクトを表示
             this.showWrongAnswerEffect();
+        }
+        
+        } catch (error) {
+            if (window.logger) {
+                window.logger.error('HandleAnswer', `Game[${this.versusSide}]: Error in handleAnswer`, {
+                    error: error.message,
+                    stack: error.stack,
+                    answer: answer,
+                    versusSide: this.versusSide
+                });
+            }
+            // エラーが発生しても処理を継続
         }
     }
     
@@ -365,8 +526,10 @@ class Game {
         
         if (this.correctAnswers >= levelUpThreshold) {
             this.level++;
-            this.uiManager.updateLevel(this.level);
-            this.uiManager.showLevelUp(this.level);
+            if (this.uiManager) {
+                this.uiManager.updateLevel(this.level);
+                this.uiManager.showLevelUp(this.level);
+            }
             
             // 速度調整とブロック数調整
             this.blockManager.adjustSpeedForLevel(this.level, this.difficulty.speedIncrease);
@@ -378,42 +541,22 @@ class Game {
         if (this.state === GameState.PLAYING) {
             this.state = GameState.PAUSED;
             this.pausedTime = performance.now();
-            this.uiManager.elements.pauseBtn.textContent = '再開';
+            if (this.uiManager && this.uiManager.elements.pauseBtn) {
+                this.uiManager.elements.pauseBtn.textContent = '再開';
+            }
         } else if (this.state === GameState.PAUSED) {
             this.state = GameState.PLAYING;
             // 一時停止していた時間を調整
             const pauseDuration = performance.now() - this.pausedTime;
             this.lastTime += pauseDuration;
+            if (this.uiManager && this.uiManager.elements.pauseBtn) {
+                if (this.uiManager && this.uiManager.elements.pauseBtn) {
             this.uiManager.elements.pauseBtn.textContent = '一時停止';
+        }
+            }
         }
     }
     
-    gameOver() {
-        console.log('GameOver called, gameTime:', this.gameTime);
-        this.state = GameState.GAME_OVER;
-        
-        // スコアを記録
-        const scoreData = this.createScoreData();
-        const scoreResult = this.scoreManager.addScore(scoreData);
-        
-        // ユーザーデータを記録
-        this.recordUserGameResult(scoreData);
-        
-        const stats = {
-            score: this.score,
-            level: this.level,
-            maxCombo: this.maxCombo,
-            mode: this.mode,
-            ranking: scoreResult.ranking,
-            isHighScore: scoreResult.isHighScore,
-            gameData: scoreData // 詳細記録用
-        };
-        
-        // 爆発エフェクトを開始してから画面を表示
-        this.showGameOverExplosion(() => {
-            this.uiManager.showGameOver(stats);
-        });
-    }
     
     gameComplete() {
         this.state = GameState.GAME_OVER;
@@ -438,12 +581,14 @@ class Game {
         
         // 爆発エフェクトを開始（gameCompleteでも統一）
         this.showGameOverExplosion(() => {
-            this.uiManager.showGameOver(stats);
+            if (this.uiManager) {
+                this.uiManager.showGameOver(stats);
+            }
         });
     }
     
     createScoreData(clearTime = null) {
-        const settings = this.uiManager.getGameSettings();
+        const settings = this.uiManager ? this.uiManager.getGameSettings() : null;
         
         // 平均回答時間を計算
         const avgAnswerTime = this.answerTimes.length > 0 ? 
@@ -551,7 +696,9 @@ class Game {
     
     backToMenu() {
         this.state = GameState.MENU;
-        this.uiManager.showScreen('start');
+        if (this.uiManager) {
+            this.uiManager.showScreen('start');
+        }
         this.reset();
     }
     
@@ -567,11 +714,27 @@ class Game {
         this.answerTimes = [];
         this.blockCreationTimes.clear();
         
+        // BlockManagerの初期化を確実に実行
+        console.log(`Game[${this.versusSide}]: Resetting BlockManager`);
         this.blockManager.resetForNewGame();
-        this.inputManager.reset();
-        this.uiManager.reset();
         
-        this.uiManager.elements.pauseBtn.textContent = '一時停止';
+        // 対戦モードでの追加チェック
+        if (this.isVersusMode) {
+            console.log(`Game[${this.versusSide}]: Verifying BlockManager initialization for versus mode`);
+            if (!this.blockManager.isInitialized || !this.blockManager.grid) {
+                console.warn(`Game[${this.versusSide}]: BlockManager not properly initialized, forcing initialization`);
+                this.blockManager.initialize();
+            }
+        }
+        
+        this.inputManager.reset();
+        if (this.uiManager) {
+            this.uiManager.reset();
+        }
+        
+        if (this.uiManager && this.uiManager.elements.pauseBtn) {
+            this.uiManager.elements.pauseBtn.textContent = '一時停止';
+        }
     }
     
     applyDebugSettings(params) {
@@ -831,5 +994,172 @@ class Game {
         this.ctx.fillText('⏸️', centerX, centerY - 120);
         
         this.ctx.restore();
+    }
+    
+    // 対戦モード用メソッド
+    setVersusMode(isVersus, side) {
+        this.isVersusMode = isVersus;
+        this.versusSide = side;
+    }
+    
+    setOpponent(opponent) {
+        this.opponent = opponent;
+    }
+    
+    setGameOverCallback(callback) {
+        this.gameOverCallback = callback;
+    }
+    
+    // 相手に攻撃を送る
+    sendAttackToOpponent() {
+        if (!this.opponent || !this.opponent.blockManager) {
+            console.log(`Game[${this.versusSide}]: Opponent or opponent blockManager not available`);
+            return;
+        }
+        
+        try {
+            // ランダムな列に×ブロックを追加
+            const col = Math.floor(Math.random() * CONFIG.GRID.COLS);
+            console.log(`Game[${this.versusSide}]: Sending attack block to column:`, col);
+            
+            // addAttackBlockメソッドが存在するか確認
+            if (!this.opponent.blockManager.addAttackBlock) {
+                console.error(`Game[${this.versusSide}]: addAttackBlock method not found in opponent blockManager`);
+                return;
+            }
+            
+            const result = this.opponent.blockManager.addAttackBlock(col);
+            console.log(`Game[${this.versusSide}]: Attack block result:`, result);
+            
+            // 攻撃ブロック追加でゲームオーバーになった場合は処理しない
+            // (通常のゲームオーバー判定に任せる)
+            if (result === 'game_over') {
+                console.log(`Game[${this.versusSide}]: Attack block caused game over - ignoring`);
+            }
+        } catch (error) {
+            console.error(`Game[${this.versusSide}]: Error in sendAttackToOpponent:`, error);
+            console.error('Stack trace:', error.stack);
+        }
+    }
+    
+    // 対戦用の設定でゲームを開始
+    startWithSettings(settings) {
+        console.log(`Game[${this.versusSide}]: startWithSettings called`);
+        
+        this.mode = settings.mode;
+        this.difficulty = CONFIG.DIFFICULTY[settings.difficulty];
+        
+        // 計算機の設定
+        this.calculator.setOperations(settings.operations);
+        this.calculator.setRange(settings.minNum, settings.maxNum);
+        this.calculator.setCarryBorrow(settings.carryBorrow || false);
+        this.calculator.setNumberRangeIncrease(this.difficulty.numberRangeIncrease);
+        this.calculator.setTrainingMode(settings.training !== null);
+        this.calculator.setOmiyageMode(settings.omiyageMode || false);
+        
+        // ブロックマネージャーの設定
+        this.blockManager.setDifficulty(this.difficulty, settings.training);
+        this.blockManager.setGame(this);
+        
+        // 対戦モードの場合は爆発ブロック確率を設定
+        if (this.isVersusMode) {
+            this.blockManager.setSpecialBlockRate(CONFIG.VERSUS.SPECIAL_BLOCK_RATE);
+        }
+        
+        // ゲーム状態をリセット
+        this.reset();
+        
+        // 対戦モード用：BlockManagerの初期化を確実に実行
+        if (this.isVersusMode && (!this.blockManager.isInitialized || !this.blockManager.grid)) {
+            console.log(`Game[${this.versusSide}]: Force initializing BlockManager for versus mode`);
+            this.blockManager.initialize();
+        }
+        
+        // ゲーム開始
+        this.state = GameState.PLAYING;
+        this.lastTime = performance.now();
+        console.log(`Game[${this.versusSide}]: Starting game loop`);
+        this.gameLoop();
+    }
+    
+    // ゲームオーバー処理（対戦モード対応）
+    gameOver() {
+        console.log('GameOver called, gameTime:', this.gameTime, 'isVersusMode:', this.isVersusMode);
+        
+        // 対戦・通常問わず状態をGAME_OVERに設定してゲーム処理を停止
+        this.state = GameState.GAME_OVER;
+        
+        if (this.isVersusMode && this.gameOverCallback) {
+            // 対戦モードの場合はコールバックを呼ぶ
+            console.log('Calling versus game over callback');
+            this.gameOverCallback();
+        } else if (!this.isVersusMode) {
+            // 通常モードの処理
+            this.state = GameState.GAME_OVER;
+            const scoreData = this.createScoreData();
+            const scoreResult = this.scoreManager.addScore(scoreData);
+            
+            this.recordUserGameResult(scoreData);
+            
+            const stats = {
+                score: this.score,
+                level: this.level,
+                maxCombo: this.maxCombo,
+                mode: this.mode,
+                ranking: scoreResult.ranking,
+                isHighScore: scoreResult.isHighScore,
+                gameData: scoreData
+            };
+            
+            this.showGameOverExplosion(() => {
+                if (this.uiManager) {
+                this.uiManager.showGameOver(stats);
+            }
+            });
+        }
+    }
+    
+    // 答えられるブロックを取得（CPU用）
+    getAnswerableBlocks() {
+        return this.blockManager.getAnswerableBlocks();
+    }
+    
+    // 対戦モード用のUI更新
+    updateVersusDisplay() {
+        const prefix = this.versusSide === 'left' ? 'left' : 'right';
+        const scoreElement = document.getElementById(`${prefix}Score`);
+        const comboElement = document.getElementById(`${prefix}Combo`);
+        
+        if (scoreElement) {
+            scoreElement.textContent = this.score;
+        }
+        if (comboElement) {
+            comboElement.textContent = this.combo;
+        }
+    }
+    
+    // 対戦モード開始処理
+    startVersusMode() {
+        // 対戦モードの場合は直接対戦ゲームを開始
+        if (this.uiManager) {
+            this.uiManager.startVersusGame();
+        }
+    }
+    
+    // ゲーム停止処理
+    stop() {
+        console.log(`Game[${this.versusSide}]: Stopping game`);
+        this.state = GameState.MENU;
+        this.isVersusMode = false;
+        
+        // ブロックマネージャーの停止
+        if (this.blockManager) {
+            this.blockManager.clear();
+        }
+        
+        // 入力マネージャーのイベントリスナーを削除
+        if (this.inputManager && this.inputManager.cleanup) {
+            this.inputManager.cleanup();
+        }
     }
 }

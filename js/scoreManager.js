@@ -187,14 +187,10 @@ class ScoreManager {
         this.saveScores();
     }
     
-    // 自動ファイル保存機能
+    // 自動ファイル保存機能（DownloadManagerに統合されたため無効化）
     autoSaveToFile() {
-        // 自動保存設定を確認
-        const autoSaveEnabled = localStorage.getItem('mathblocks_autosave') === 'true';
-        if (!autoSaveEnabled) {
-            console.log('自動保存は無効です');
-            return;
-        }
+        console.log('ScoreManager: 個別の自動保存は無効化されています。DownloadManagerを使用してください。');
+        return;
         
         try {
             // 現在の日時を取得

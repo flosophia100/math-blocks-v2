@@ -159,5 +159,63 @@ const GameState = {
 // ゲームモード
 const GameMode = {
     SCORE: 'score',
-    TIME: 'time'
+    TIME: 'time',
+    VERSUS_CPU: 'versus_cpu',
+    VERSUS_HUMAN: 'versus_human'
+};
+
+// 対戦モード設定
+CONFIG.VERSUS = {
+    // 対戦時の爆発ブロック生成確率
+    SPECIAL_BLOCK_RATE: 0.2,
+    
+    // CPU難易度設定（ゲーム難易度に対応）
+    CPU_DIFFICULTY: {
+        veryeasy: {
+            name: '入門',
+            responseTime: [2500, 4000], // 反応時間（ミリ秒）
+            accuracy: 0.92, // 正答率をさらに向上（誤答率8%）
+            description: '初心者向け・ゆっくり考える'
+        },
+        easy: {
+            name: 'イージー',
+            responseTime: [1800, 3500],
+            accuracy: 0.95, // 正答率をさらに向上（誤答率5%）
+            description: '初心者向け・少し早め'
+        },
+        normal: {
+            name: 'ノーマル',
+            responseTime: [1200, 2800],
+            accuracy: 0.97, // 正答率をさらに向上（誤答率3%）
+            description: '中級者向け・標準的な速度'
+        },
+        hard: {
+            name: 'ハード',
+            responseTime: [800, 2000],
+            accuracy: 0.98, // 正答率向上（誤答率2%）
+            description: '上級者向け・素早い反応'
+        },
+        veryhard: {
+            name: 'エクストリーム',
+            responseTime: [500, 1500],
+            accuracy: 0.99, // 最高レベル向上（誤答率1%）
+            description: '最高難易度・瞬時の判断'
+        }
+    },
+    
+    // 左側プレイヤー用キーマッピング
+    LEFT_PLAYER_KEYS: {
+        '7': ['q', 'Q'],
+        '8': ['w', 'W'],
+        '9': ['e', 'E'],
+        '4': ['a', 'A'],
+        '5': ['s', 'S'],
+        '6': ['d', 'D'],
+        '1': ['z', 'Z'],
+        '2': ['x', 'X'],
+        '3': ['c', 'C'],
+        '0': ['Meta', 'Alt'], // Win/Cmd キー, Alt キー
+        'ok': [' '], // スペースキー
+        'clear': ['Shift'] // Shift キー
+    }
 };

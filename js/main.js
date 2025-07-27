@@ -17,5 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ユーザーマネージャーをゲームに渡す（初期画面の決定も含む）
     game.setUserManager(window.userManager);
     
+    // UIManagerにゲームインスタンスを設定
+    game.uiManager.setGameInstance(game);
+    
     console.log('MathBlocks v2.0 initialized');
 });

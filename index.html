@@ -96,6 +96,7 @@
                 <h2>ゲームモード</h2>
                 <button class="mode-btn" data-mode="score">スコアアタック</button>
                 <button class="mode-btn" data-mode="time">タイムアタック</button>
+                <button class="mode-btn" data-mode="versus_human">2人対戦</button>
             </div>
             
             <div class="difficulty-selection">
@@ -405,6 +406,192 @@
             </div>
         </div>
         
+        <!-- 2人対戦設定画面 -->
+        <div id="versusHumanSetupScreen" class="screen" style="display: none;">
+            <h1>2人対戦</h1>
+            
+            <div class="versus-setup">
+                <h2>プレイヤー設定</h2>
+                
+                <!-- プレイヤー1設定 -->
+                <div class="player-setup">
+                    <h3>プレイヤー1（左側）</h3>
+                    <div class="player-type-selection">
+                        <label>
+                            <input type="radio" name="player1Type" value="guest" checked>
+                            <span>ゲストプレイヤー</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="player1Type" value="registered">
+                            <span>登録ユーザー</span>
+                        </label>
+                    </div>
+                    <div class="player-name-input">
+                        <input type="text" id="player1Name" placeholder="プレイヤー1の名前" value="プレイヤー1" maxlength="10">
+                    </div>
+                    <div class="registered-user-select" id="player1UserSelect" style="display: none;">
+                        <select id="player1UserList">
+                            <option value="">ユーザーを選択</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- プレイヤー2設定 -->
+                <div class="player-setup">
+                    <h3>プレイヤー2（右側）</h3>
+                    <div class="player-type-selection">
+                        <label>
+                            <input type="radio" name="player2Type" value="guest" checked>
+                            <span>ゲストプレイヤー</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="player2Type" value="registered">
+                            <span>登録ユーザー</span>
+                        </label>
+                    </div>
+                    <div class="player-name-input">
+                        <input type="text" id="player2Name" placeholder="プレイヤー2の名前" value="プレイヤー2" maxlength="10">
+                    </div>
+                    <div class="registered-user-select" id="player2UserSelect" style="display: none;">
+                        <select id="player2UserList">
+                            <option value="">ユーザーを選択</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="game-settings-display">
+                    <div class="setting-item">
+                        <span class="setting-label">ゲーム難易度:</span>
+                        <span id="versusHumanDifficultyDisplay">-</span>
+                    </div>
+                    <div class="setting-item" id="versusHumanTrainingDisplay" style="display: none;">
+                        <span class="setting-label">特訓モード:</span>
+                        <span id="versusHumanTrainingName">-</span>
+                    </div>
+                </div>
+                
+                <div class="controls-info">
+                    <h3>操作方法</h3>
+                    <div class="controls-grid">
+                        <div class="control-info">
+                            <h4>プレイヤー1（左側）</h4>
+                            <p>数字: Q/W/E/A/S/D/Z/X/C</p>
+                            <p>確定: スペースキー</p>
+                            <p>クリア: Shiftキー</p>
+                        </div>
+                        <div class="control-info">
+                            <h4>プレイヤー2（右側）</h4>
+                            <p>数字: テンキー 0-9</p>
+                            <p>確定: Enterキー</p>
+                            <p>クリア: Backspace/Delete</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="versusHumanStartBtn" class="start-btn">対戦開始</button>
+            <button id="backFromVersusHumanSetupBtn" class="back-btn">戻る</button>
+        </div>
+        
+        <!-- 対戦設定画面（CPU対戦用） -->
+        <div id="versusCpuSetupScreen" class="screen" style="display: none;">
+            <h1>CPU対戦</h1>
+            
+            <div class="versus-setup">
+                <h2>対戦設定確認</h2>
+                <div class="game-settings-display">
+                    <div class="setting-item">
+                        <span class="setting-label">ゲーム難易度:</span>
+                        <span id="versusDifficultyDisplay">-</span>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">CPU強さ:</span>
+                        <span id="versusCpuStrength">-</span>
+                    </div>
+                    <div class="setting-item" id="versusTrainingDisplay" style="display: none;">
+                        <span class="setting-label">特訓モード:</span>
+                        <span id="versusTrainingName">-</span>
+                    </div>
+                </div>
+                
+                <div class="cpu-info">
+                    <h3>CPUの特徴</h3>
+                    <p id="cpuDescription">選択した難易度に応じてCPUの反応速度と正答率が変化します</p>
+                </div>
+            </div>
+            
+            <button id="versusStartBtn" class="start-btn">対戦開始</button>
+            <button id="backFromVersusSetupBtn" class="back-btn">戻る</button>
+        </div>
+        
+        <!-- 対戦ゲーム画面 -->
+        <div id="versusGameScreen" class="screen" style="display: none;">
+            <div class="versus-game-container">
+                <!-- 左プレイヤーエリア -->
+                <div class="versus-player-area">
+                    <div class="versus-player-header">
+                        <h2 id="leftPlayerName">プレイヤー1</h2>
+                        <div class="versus-player-stats">
+                            <span class="versus-stat">スコア: <span id="leftScore">0</span></span>
+                            <span class="versus-stat">コンボ: <span id="leftCombo">0</span></span>
+                        </div>
+                    </div>
+                    <div class="versus-input-area">
+                        <input type="text" id="leftAnswerDisplay" class="versus-answer-input" readonly placeholder="回答入力">
+                    </div>
+                    <canvas id="leftGameCanvas" class="versus-canvas"></canvas>
+                </div>
+                
+                <div class="versus-separator">VS</div>
+                
+                <!-- 右プレイヤーエリア -->
+                <div class="versus-player-area">
+                    <div class="versus-player-header">
+                        <h2 id="rightPlayerName">プレイヤー2</h2>
+                        <div class="versus-player-stats">
+                            <span class="versus-stat">スコア: <span id="rightScore">0</span></span>
+                            <span class="versus-stat">コンボ: <span id="rightCombo">0</span></span>
+                        </div>
+                    </div>
+                    <div class="versus-input-area">
+                        <input type="text" id="rightAnswerDisplay" class="versus-answer-input" readonly placeholder="回答入力">
+                    </div>
+                    <canvas id="rightGameCanvas" class="versus-canvas"></canvas>
+                </div>
+            </div>
+            
+            <div class="versus-controls">
+                <button id="versusPauseBtn">一時停止</button>
+                <button id="versusQuitBtn">終了</button>
+            </div>
+        </div>
+        
+        <!-- 対戦結果画面 -->
+        <div id="versusResultScreen" class="screen" style="display: none;">
+            <h1>対戦結果</h1>
+            
+            <div class="versus-winner">
+                <h2>勝者</h2>
+                <div id="versusWinner" class="winner-name">-</div>
+            </div>
+            
+            <div class="versus-final-scores">
+                <div class="final-score-item">
+                    <h3 id="leftFinalName">プレイヤー1</h3>
+                    <div id="leftFinalScore">0</div>
+                </div>
+                <div class="final-score-item">
+                    <h3 id="rightFinalName">プレイヤー2</h3>
+                    <div id="rightFinalScore">0</div>
+                </div>
+            </div>
+            
+            <div class="versus-result-actions">
+                <button id="versusRematchBtn">再戦</button>
+                <button id="backFromVersusResultBtn">メニューに戻る</button>
+            </div>
+        </div>
+        
         <!-- デバッグパネル -->
         <div id="debugPanel" class="debug-panel" style="display: none;">
             <div class="debug-controls">
@@ -480,6 +667,8 @@
     </div>
     
     <script src="js/config.js"></script>
+    <script src="js/logger.js"></script>
+    <script src="js/downloadManager.js"></script>
     <script src="js/calculator.js"></script>
     <script src="js/hintSystem.js"></script>
     <script src="js/block.js"></script>
@@ -488,6 +677,7 @@
     <script src="js/scoreManager.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/game.js"></script>
+    <script src="js/versusGame.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

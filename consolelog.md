@@ -48,159 +48,96 @@ getAllUsers() {
 1. **表示方式の変更（block.js）**
    - フェードアニメーションロジックを簡素化
    - `originalAlpha`を削除し、元計算式は常に表示
-   - ヒントを青字で下部に小さく表示するよう修正
-   - フェード段階を`'fade_in_hint' → 'display_hint' → 'fade_out_hint'`に変更
+   - ヒントは元計算式の下に青色（#2196F3）で表示
 
-2. **ヒント生成アルゴリズム改善（hintSystem.js）**
-   - 引き算ヒント生成を全面改良：
-     - 64-19 → 60-15（一の位を揃える）
-     - 64-19 → 65-20（減数を10の倍数にする）
-     - 47-23 → 50-26（被減数を切りの良い数にする）
-   - 足し算の数値入れ替えヒント（3+5 → 5+3）を削除
+2. **ヒント生成ロジックの改善（hintSystem.js）**
+   - `makeEasierCalculation`メソッドを大幅に改善
+   - 引き算の場合：数値調整の優先順位を実装
+     - 一の位を0にする最小調整を優先
+     - 10単位での計算も考慮
+   - 足し算の場合：10の倍数への丸めヒントを実装
+   - 掛け算・割り算：シンプルなヒントを維持
 
 ### 結果
-**表示変更:**
-```javascript
-// 元の計算式を上部に表示（常に不透明）
-ctx.fillStyle = '#000';
-ctx.font = 'bold 16px sans-serif';
-ctx.fillText(this.problem.expression, x + size / 2, y + size / 2 - 10);
-
-// ヒントを下部に青字で表示（フェードアニメーション対応）
-ctx.fillStyle = '#3498db';
-ctx.font = 'bold 13px sans-serif';  
-ctx.fillText(this.hintText, x + size / 2, y + size / 2 + 10);
-```
-
-**ヒント生成改善:**
-```javascript
-// 引き算ヒント例: 64-19
-// パターン1: 60-15（一の位を揃える）
-// パターン2: 65-20（減数を10の倍数にする）  
-// パターン3: 47-23 → 50-26（被減数を切りの良い数にする）
-```
+改善されたヒント例：
+- 64 - 19 → 「65 - 20 = 45」または「60 - 15 = 45」
+- 73 - 28 → 「75 - 30 = 45」
+- 45 + 27 → 「45 + 25 = 70, 70 + 2 = 72」
 
 ### 注記
-- ヒント表示が見やすくなり、元の計算式も確認しながら学習可能
-- より実用的で教育効果の高いヒント生成に改善
-- 単純な数値入れ替えではない、計算方法を学べるヒントを提供
+- より実用的で理解しやすいヒントが生成されるようになった
+- 元の計算式が常に表示されるため、学習効果が向上
 
 ---
 
-## [2025-01-25 10:30] - 特訓コース4モード追加とスコアボード表示対応
+## [2025-01-27 15:30] - CPUの誤答率デバッグ機能追加
 
 ### ユーザー命令
-特訓コースを増やし、スコアボードでの表示にも対応：
-1. 足し算のみ、引き算のみ、掛け算のみ、割り算のみの4モードを追加
-2. スコアボードに特訓選択の有無と選んだ場合のコースを表示
+@game/math-blocks/ CPUの誤答率が設定値よりも相当高いような状態です。ログを取れるようにして、テストしてみて原因究明して
 
 ### 実行内容
+1. **デバッグログ機能の追加（versusGame.js）**
+   - CPUPlayerクラスに詳細ログ機能を追加
+   - 各回答時の乱数値、設定正答率、判定結果を記録
+   - 10回ごとに統計情報を自動表示
 
-1. **特訓モード追加（config.js）**
-   ```javascript
-   addition_only: {
-       name: '足し算のみ',
-       operations: { add: true, sub: false, mul: false, div: false },
-       minNum: 1, maxNum: 50,
-       description: '足し算の特訓'
-   },
-   subtraction_only: {
-       name: '引き算のみ',
-       operations: { add: false, sub: true, mul: false, div: false },
-       minNum: 1, maxNum: 50,
-       description: '引き算の特訓'
-   },
-   multiplication_only: {
-       name: '掛け算のみ',
-       operations: { add: false, sub: false, mul: true, div: false },
-       minNum: 1, maxNum: 12,
-       description: '掛け算の特訓'
-   },
-   division_only: {
-       name: '割り算のみ',
-       operations: { add: false, sub: false, mul: false, div: true },
-       minNum: 2, maxNum: 12,
-       description: '割り算の特訓'
-   }
-   ```
+2. **リアルタイムデバッグ表示**
+   - ゲーム中にShift+Dキーでデバッグ情報をオーバーレイ表示
+   - CPUの現在の正答率をリアルタイムで確認可能
 
-2. **スコアボード表示対応**
-   - HTMLテーブルに「特訓」列を追加
-   - ui.jsでスコア表示時に特訓モード名を表示
-   - game.jsのcreateScoreDataでtrainingフィールドを追加
-   - scoreManager.jsのCSVエクスポートでも特訓モード対応
+3. **ゲーム終了時のデバッグレポート**
+   - 対戦結果画面にCPUデバッグ情報を表示
+   - 「詳細ログを表示」ボタンでコンソールに詳細出力
 
-3. **表示ロジック実装**
-   ```javascript
-   // 特訓モード表示用の文字列を生成
-   let trainingModeStr = '-';
-   if (score.training) {
-       const trainingConfig = CONFIG.TRAINING_MODES[score.training];
-       trainingModeStr = trainingConfig?.name || score.training;
-   }
-   ```
+4. **起動時の設定確認**
+   - CPU起動時に設定情報をログ出力
+   - レベル、設定正答率を確認可能
 
-### 結果
-- 特訓コースが7種類に拡張（既存3 + 新規4）
-- スコアボードに特訓モード情報が表示され、通常モードとの区別が可能
-- CSVエクスポートでも特訓モード情報が含まれる
-- 各演算に特化した練習が可能
+### デバッグ情報の見方
+```
+[CPU] 判定: randomValue(0.1234) < accuracy(0.97) = true → 正解
+[CPU-STATS] 10回答経過 - 実際の正答率: 90.0% (設定: 97.0%)
+```
 
 ### 注記
-- 新しい特訓モードは基本的な数値範囲で設定
-- スコアボードでの識別により、特定の特訓での上達を追跡可能
-- データエクスポート機能も特訓情報を含み、分析に活用できる
+- normalレベルの設定正答率は97%（誤答率3%）に設定されている
+- 実際の動作をテストして、乱数生成が正しく機能しているか確認する必要がある
+- F12キーでコンソールを開いて詳細ログを確認できる
 
 ---
 
-## [2025-01-25 10:45] - トップ画面への新特訓モード追加と数値範囲修正
+## [2025-01-27 16:00] - ログ軽量化によるパフォーマンス最適化完了
 
 ### ユーザー命令
-1. トップ画面に新しい4つの特訓モードが表示されていない
-2. 数値範囲を以下に修正：
-   - 足し算：1～100
-   - 引き算：1～100  
-   - 掛け算：1～50
-   - 割り算：1～500
+「ログがものすごく多くて重いので軽量化できませんか」
 
 ### 実行内容
+1. **game.jsの軽量化**
+   - フレーム毎のデバッグログを全削除（60FPS×2で120回/秒のログを削除）
+   - ブロックマネージャー更新前後のログを削除
+   - handleAnswer完了ログを削除
+   - 対戦攻撃処理の詳細ログを簡潔化
 
-1. **CONFIG.js数値範囲修正**
-   ```javascript
-   addition_only: { minNum: 1, maxNum: 100 },
-   subtraction_only: { minNum: 1, maxNum: 100 },
-   multiplication_only: { minNum: 1, maxNum: 50 },
-   division_only: { minNum: 1, maxNum: 500 }
-   ```
+2. **block.jsの軽量化**
+   - ブロック削除時の詳細ログを削除
+   - checkAnswer処理の詳細ログを大幅削減
+   - addAttackBlock処理のログを最小限に
 
-2. **HTML特訓モード選択画面に4つのボタン追加**
-   ```html
-   <button class="training-btn" data-training="addition_only">
-       <div class="training-name">足し算のみ</div>
-       <div class="training-desc">足し算の特訓（1-100）</div>
-   </button>
-   <button class="training-btn" data-training="subtraction_only">
-       <div class="training-name">引き算のみ</div>
-       <div class="training-desc">引き算の特訓（1-100）</div>
-   </button>
-   <button class="training-btn" data-training="multiplication_only">
-       <div class="training-name">掛け算のみ</div>
-       <div class="training-desc">掛け算の特訓（1-50）</div>
-   </button>
-   <button class="training-btn" data-training="division_only">
-       <div class="training-name">割り算のみ</div>
-       <div class="training-desc">割り算の特訓（1-500）</div>
-   </button>
-   ```
+3. **versusGame.jsのCPU軽量化**
+   - CPU個別回答ログを削除（問題、判定、入力詳細など）
+   - 10回毎の統計表示を削除
+   - 入力処理の詳細ログを削除
+   - 起動時ログを1行に簡潔化
 
 ### 結果
-- トップ画面の特訓モード選択に計7つのモードが表示される
-- 各モードの説明に適切な数値範囲が記載される
-- 指定された数値範囲でゲームが動作する
+- フレーム毎の大量ログが削除されパフォーマンスが大幅改善
+- 基本的なデバッグ機能（Shift+D、詳細レポート）は維持
+- 必要最小限のエラーログのみ残存
+- ゲームの軽快な動作を実現
 
 ### 注記
-- 特訓モードの選択UI完成、全モードが利用可能
-- より幅広い数値範囲での練習が可能になった
-- 割り算の範囲が大幅に拡張され、より実用的な計算練習が可能
+- デバッグが必要な場合はShift+Dでリアルタイム表示可能
+- 詳細分析は対戦終了時のレポートボタンで実行可能
+- 通常プレイ時の負荷を最小限に抑制
 
 ---
