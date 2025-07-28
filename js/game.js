@@ -11,7 +11,8 @@ class Game {
         // ゲーム設定
         this.mode = null;
         this.difficulty = null;
-        this.state = GameState.MENU;
+        this.state = 'menu'; // 安全な文字列リテラル使用
+        this.isRunning = false; // ゲームループ実行フラグ
         
         // ゲームオブジェクト
         this.calculator = new Calculator();
@@ -176,7 +177,12 @@ class Game {
         
         this.calculator.setRange(initialMinNum, initialMaxNum);
         this.calculator.setCarryBorrow(settings.carryBorrow || false);
-        this.calculator.setNumberRangeIncrease(this.difficulty.numberRangeIncrease);
+        // 難易度設定が存在する場合のみ設定
+        if (this.difficulty && this.difficulty.numberRangeIncrease !== undefined) {
+            this.calculator.setNumberRangeIncrease(this.difficulty.numberRangeIncrease);
+        } else {
+            this.calculator.setNumberRangeIncrease(false); // デフォルト値
+        }
         this.calculator.setTrainingMode(settings.training !== null);
         this.calculator.setOmiyageMode(settings.omiyageMode || false);
         
@@ -191,6 +197,7 @@ class Game {
         // ゲーム画面を表示
         this.uiManager.showScreen('game');
         this.state = GameState.PLAYING;
+        this.isRunning = true; // ゲームループ実行フラグを有効化
         
         // ゲームループ開始
         this.lastTime = performance.now();
@@ -280,11 +287,12 @@ class Game {
             }
         }
         
-        // 対戦モードまたは通常モードで継続
-        if (this.isVersusMode || this.state !== GameState.MENU) {
+        // ゲームが実行中で停止されていない場合のみ継続
+        // 修正: isRunningフラグが最優先 - 対戦モードでもisRunning=falseなら停止
+        if (this.isRunning && (this.state === 'playing' || this.state === GameState.PLAYING)) {
             requestAnimationFrame(() => this.gameLoop());
         } else {
-            // デバッグログを削除
+            console.log(`Game[${this.versusSide}]: Game loop stopped - isRunning: ${this.isRunning}, state: ${this.state}`);
         }
     }
     
@@ -615,7 +623,9 @@ class Game {
             operations: settings.operations || { add: true, sub: true, mul: true, div: true },
             minNum: settings.minNum || 1,
             maxNum: settings.maxNum || 10,
-            difficulty: settings.difficulty || 'normal',
+            difficulty: typeof settings.difficulty === 'object' ? 
+                (settings.difficulty.name || 'normal') : 
+                (settings.difficulty || 'normal'),
             training: settings.training || null, // 特訓モード
             clearTime: clearTime,
             gameTime: Math.round(gameTimeInSeconds), // ゲーム時間（秒）
@@ -686,6 +696,7 @@ class Game {
     
     quitGame() {
         this.state = GameState.MENU;
+        this.isRunning = false; // ゲームループ停止
         this.backToMenu();
     }
     
@@ -696,7 +707,12 @@ class Game {
     
     backToMenu() {
         this.state = GameState.MENU;
+        this.isRunning = false; // ゲームループ停止
         if (this.uiManager) {
+            // 選択状態をクリア
+            if (this.uiManager.clearSelections) {
+                this.uiManager.clearSelections();
+            }
             this.uiManager.showScreen('start');
         }
         this.reset();
@@ -713,6 +729,7 @@ class Game {
         this.questionsAnswered = 0;
         this.answerTimes = [];
         this.blockCreationTimes.clear();
+        this.isRunning = false; // リセット時はゲームループ停止
         
         // BlockManagerの初期化を確実に実行
         console.log(`Game[${this.versusSide}]: Resetting BlockManager`);
@@ -1047,13 +1064,31 @@ class Game {
         console.log(`Game[${this.versusSide}]: startWithSettings called`);
         
         this.mode = settings.mode;
-        this.difficulty = CONFIG.DIFFICULTY[settings.difficulty];
+        
+        // 難易度設定の確認とデフォルト値の設定
+        // settings.difficultyは既にCONFIG.DIFFICULTYオブジェクトとして渡されている
+        if (settings.difficulty && typeof settings.difficulty === 'object') {
+            this.difficulty = settings.difficulty;
+            console.log(`Game[${this.versusSide}]: Using difficulty object:`, this.difficulty);
+        } else if (settings.difficulty && typeof settings.difficulty === 'string' && CONFIG.DIFFICULTY[settings.difficulty]) {
+            this.difficulty = CONFIG.DIFFICULTY[settings.difficulty];
+            console.log(`Game[${this.versusSide}]: Converting difficulty string '${settings.difficulty}' to object`);
+        } else {
+            console.warn(`Game[${this.versusSide}]: Invalid difficulty, using 'normal'`);
+            this.difficulty = CONFIG.DIFFICULTY['normal'];
+        }
         
         // 計算機の設定
         this.calculator.setOperations(settings.operations);
         this.calculator.setRange(settings.minNum, settings.maxNum);
         this.calculator.setCarryBorrow(settings.carryBorrow || false);
-        this.calculator.setNumberRangeIncrease(this.difficulty.numberRangeIncrease);
+        
+        // 難易度設定が存在する場合のみ設定
+        if (this.difficulty && this.difficulty.numberRangeIncrease !== undefined) {
+            this.calculator.setNumberRangeIncrease(this.difficulty.numberRangeIncrease);
+        } else {
+            this.calculator.setNumberRangeIncrease(false); // デフォルト値
+        }
         this.calculator.setTrainingMode(settings.training !== null);
         this.calculator.setOmiyageMode(settings.omiyageMode || false);
         
@@ -1077,6 +1112,7 @@ class Game {
         
         // ゲーム開始
         this.state = GameState.PLAYING;
+        this.isRunning = true; // ゲームループ実行フラグを有効化
         this.lastTime = performance.now();
         console.log(`Game[${this.versusSide}]: Starting game loop`);
         this.gameLoop();
@@ -1088,6 +1124,15 @@ class Game {
         
         // 対戦・通常問わず状態をGAME_OVERに設定してゲーム処理を停止
         this.state = GameState.GAME_OVER;
+        this.isRunning = false; // ゲームループ停止
+        
+        // タイマーとインターバルを確実に停止
+        if (this.blockManager) {
+            this.blockManager.clear();
+        }
+        if (this.hintSystem && this.hintSystem.stop) {
+            this.hintSystem.stop();
+        }
         
         if (this.isVersusMode && this.gameOverCallback) {
             // 対戦モードの場合はコールバックを呼ぶ
@@ -1149,8 +1194,9 @@ class Game {
     // ゲーム停止処理
     stop() {
         console.log(`Game[${this.versusSide}]: Stopping game`);
-        this.state = GameState.MENU;
+        this.state = 'menu'; // 安全な文字列リテラル使用
         this.isVersusMode = false;
+        this.isRunning = false; // ゲームループ停止フラグ
         
         // ブロックマネージャーの停止
         if (this.blockManager) {
@@ -1161,5 +1207,12 @@ class Game {
         if (this.inputManager && this.inputManager.cleanup) {
             this.inputManager.cleanup();
         }
+        
+        // ヒントシステムの停止
+        if (this.hintSystem && this.hintSystem.stop) {
+            this.hintSystem.stop();
+        }
+        
+        console.log(`Game[${this.versusSide}]: Game stopped successfully`);
     }
 }

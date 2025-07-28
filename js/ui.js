@@ -221,6 +221,9 @@ class UIManager {
         
         this.setupEventListeners();
         console.log('DEBUG: UIManager initialized, elements.startButton:', !!this.elements.startButton);
+        
+        // 初期状態でスタートボタンを無効化
+        this.checkStartEnabled();
     }
     
     setupEventListeners() {
@@ -268,7 +271,10 @@ class UIManager {
         
         // コレクション画面
         if (this.elements.backFromCollectionBtn) {
-            this.elements.backFromCollectionBtn.addEventListener('click', () => this.showScreen('start'));
+            this.elements.backFromCollectionBtn.addEventListener('click', () => {
+                this.clearSelections();
+                this.showScreen('start');
+            });
         }
         if (this.elements.closeNewItemsBtn) {
             this.elements.closeNewItemsBtn.addEventListener('click', () => this.hideNewItemsNotification());
@@ -285,7 +291,10 @@ class UIManager {
             this.elements.deleteUserBtn.addEventListener('click', () => this.deleteUser());
         }
         if (this.elements.backFromSettingsBtn) {
-            this.elements.backFromSettingsBtn.addEventListener('click', () => this.showScreen('start'));
+            this.elements.backFromSettingsBtn.addEventListener('click', () => {
+                this.clearSelections();
+                this.showScreen('start');
+            });
         }
         
         // 対戦モード設定画面
@@ -370,7 +379,10 @@ class UIManager {
             this.elements.versusRematchBtn.addEventListener('click', () => this.versusRematch());
         }
         if (this.elements.backFromVersusResultBtn) {
-            this.elements.backFromVersusResultBtn.addEventListener('click', () => this.showScreen('start'));
+            this.elements.backFromVersusResultBtn.addEventListener('click', () => {
+                this.clearSelections();
+                this.showScreen('start');
+            });
         }
         
         // モード選択
@@ -1198,7 +1210,32 @@ class UIManager {
         }
     }
     
+    // 選択状態をクリア
+    clearSelections() {
+        console.log('UIManager: clearSelections called');
+        this.selectedMode = null;
+        this.selectedDifficulty = null;
+        this.selectedTraining = null;
+        
+        // UIボタンの選択状態もクリア
+        this.elements.modeButtons.forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        this.elements.difficultyButtons.forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        this.elements.trainingButtons.forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // スタートボタンを無効化
+        this.checkStartEnabled();
+        console.log('UIManager: clearSelections completed');
+    }
+
     backToMenu() {
+        // 選択状態をクリア
+        this.clearSelections();
         this.showScreen('start');
     }
     
@@ -1789,14 +1826,15 @@ class UIManager {
         }
         
         const mode = this.selectedMode;
-        const difficulty = this.selectedDifficulty;
+        // 難易度文字列をCONFIG.DIFFICULTYオブジェクトに変換
+        const difficultyObj = CONFIG.DIFFICULTY[this.selectedDifficulty] || CONFIG.DIFFICULTY['normal'];
         const training = this.selectedTraining;
         // ゲーム難易度をCPU難易度として使用
         const cpuLevel = this.selectedDifficulty;
         
         // 対戦ゲームインスタンスを作成
-        console.log('Creating VersusGame with:', { mode, difficulty, training, cpuLevel });
-        this.versusGame = new VersusGame(mode, difficulty, training, cpuLevel);
+        console.log('Creating VersusGame with:', { mode, difficulty: difficultyObj, training, cpuLevel });
+        this.versusGame = new VersusGame(mode, difficultyObj, training, cpuLevel);
         
         // プレイヤー名を設定
         if (mode === GameMode.VERSUS_CPU) {
@@ -2110,8 +2148,10 @@ class UIManager {
         }
         
         // ゲーム開始
+        // 難易度文字列をCONFIG.DIFFICULTYオブジェクトに変換
+        const difficultyObj = CONFIG.DIFFICULTY[settings.difficulty] || CONFIG.DIFFICULTY['normal'];
         const cpuLevel = settings.difficulty; // 2人対戦ではCPUレベルは使わないが、互換性のため
-        this.versusGame = new VersusGame(settings.mode, settings.difficulty, settings.training, cpuLevel, this.versusPlayerNames);
+        this.versusGame = new VersusGame(settings.mode, difficultyObj, settings.training, cpuLevel, this.versusPlayerNames);
         this.versusGame.start();
     }
 }

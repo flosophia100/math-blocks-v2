@@ -1,20 +1,18 @@
-172.23.160.1 - - [28/Jul/2025 06:23:45] "GET /js/block.js HTTP/1.1" 304 -
-172.23.160.1 - - [28/Jul/2025 06:23:45] "GET /js/game.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:23:45] "GET /js/ui.js HTTP/1.1" 304 -
-172.23.160.1 - - [28/Jul/2025 06:23:45] "GET /js/versusGame.js HTTP/1.1" 304 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET / HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /css/styles.css HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/config.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/calculator.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/logger.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/hintSystem.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/block.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/input.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/userManager.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/scoreManager.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/ui.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/game.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/versusGame.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /js/main.js HTTP/1.1" 200 -
-172.23.160.1 - - [28/Jul/2025 06:24:32] code 404, message File not found
-172.23.160.1 - - [28/Jul/2025 06:24:32] "GET /favicon.ico HTTP/1.1" 404 -
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/usr/lib/python3.12/http/server.py", line 1314, in <module>
+    test(
+  File "/usr/lib/python3.12/http/server.py", line 1261, in test
+    with ServerClass(addr, HandlerClass) as httpd:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socketserver.py", line 457, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.12/http/server.py", line 1308, in server_bind
+    return super().server_bind()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/server.py", line 136, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/usr/lib/python3.12/socketserver.py", line 473, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use

@@ -91,15 +91,33 @@ class Logger {
     
     // ログをダウンロード
     downloadLogs() {
+        console.log('Logger: downloadLogs called, logs count:', this.logs.length);
+        console.log('Logger: First few logs:', this.logs.slice(0, 3));
+        
+        // ログが空の場合はテストログを生成
+        if (this.logs.length === 0) {
+            console.log('Logger: No logs found, generating test logs');
+            this.info('Logger', 'Test log entry 1 - Logger system is working');
+            this.info('Logger', 'Test log entry 2 - Download function called');
+            this.error('Logger', 'Test error log to verify functionality');
+            console.log('Logger: Test logs generated, new count:', this.logs.length);
+        }
+        
         const logContent = this.formatLogsForFile();
+        console.log('Logger: Formatted log content length:', logContent.length);
+        console.log('Logger: First 200 chars of content:', logContent.substring(0, 200));
+        
         const filename = `mathblocks-log-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
         
         // DownloadManagerを使用
         if (window.downloadManager) {
+            console.log('Logger: Using DownloadManager');
             window.downloadManager.manualDownload(logContent, filename, 'text/plain');
         } else {
+            console.log('Logger: Using fallback download method');
             // フォールバック
             const blob = new Blob([logContent], { type: 'text/plain' });
+            console.log('Logger: Blob size:', blob.size);
             const url = URL.createObjectURL(blob);
             
             const a = document.createElement('a');

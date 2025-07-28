@@ -1,6 +1,7 @@
 // 対戦モード用ゲームクラス
 class VersusGame {
     constructor(mode, difficulty, training = null, cpuLevel = 'normal', playerNames = null) {
+        console.log('VersusGame constructor - difficulty:', difficulty);
         this.mode = mode; // 'versus_cpu' or 'versus_human'
         this.difficulty = difficulty;
         this.training = training;
@@ -14,6 +15,7 @@ class VersusGame {
         // 対戦結果
         this.winner = null;
         this.gameEnded = false;
+        this.isRunning = false; // ゲームループ制御フラグ
         
         // CPU関連
         this.cpuPlayer = null;
@@ -51,6 +53,10 @@ class VersusGame {
         
         // 左側のゲーム（CPU対戦時はCPU、人間対戦時はプレイヤー1）
         this.leftGame = new Game(this.leftCanvas);
+        if (!this.leftGame) {
+            console.error('VersusGame: Failed to create left game');
+            return;
+        }
         this.leftGame.setVersusMode(true, 'left');
         
         // 対戦モード用にUIManagerを無効化（VersusGameが画面制御を行うため）
@@ -60,15 +66,21 @@ class VersusGame {
         if (window.userManager) {
             this.leftGame.setUserManager(window.userManager);
         }
-        // ScoreManagerが正しく設定されているか確認・修正
-        if (!this.leftGame.scoreManager) {
-            this.leftGame.scoreManager = new ScoreManager();
-            console.log('VersusGame: Left game scoreManager initialized');
+        // グローバルScoreManagerを使用（新しいインスタンスは作らない）
+        if (window.scoreManager) {
+            this.leftGame.scoreManager = window.scoreManager;
+            console.log('VersusGame: Left game using global scoreManager');
+        } else {
+            console.error('VersusGame: Global scoreManager not found');
         }
         console.log('VersusGame: Left game created');
         
         // 右側のゲーム（人間プレイヤー）
         this.rightGame = new Game(this.rightCanvas);
+        if (!this.rightGame) {
+            console.error('VersusGame: Failed to create right game');
+            return;
+        }
         this.rightGame.setVersusMode(true, 'right');
         
         // 対戦モード用にUIManagerを無効化（VersusGameが画面制御を行うため）
@@ -78,10 +90,12 @@ class VersusGame {
         if (window.userManager) {
             this.rightGame.setUserManager(window.userManager);
         }
-        // ScoreManagerが正しく設定されているか確認・修正
-        if (!this.rightGame.scoreManager) {
-            this.rightGame.scoreManager = new ScoreManager();
-            console.log('VersusGame: Right game scoreManager initialized');
+        // グローバルScoreManagerを使用（新しいインスタンスは作らない）
+        if (window.scoreManager) {
+            this.rightGame.scoreManager = window.scoreManager;
+            console.log('VersusGame: Right game using global scoreManager');
+        } else {
+            console.error('VersusGame: Global scoreManager not found');
         }
         console.log('VersusGame: Right game created');
         
@@ -160,6 +174,13 @@ class VersusGame {
         };
         
         console.log('VersusGame: Starting with settings:', settings);
+        console.log('VersusGame: Difficulty object details:', {
+            name: this.difficulty?.name,
+            minNum: this.difficulty?.minNum,
+            maxNum: this.difficulty?.maxNum,
+            initialSpeed: this.difficulty?.initialSpeed,
+            maxBlocks: this.difficulty?.maxBlocks
+        });
         
         // 両ゲームを開始
         console.log('VersusGame: Starting left game');
@@ -168,16 +189,27 @@ class VersusGame {
         this.rightGame.startWithSettings(settings);
         
         // 対戦モード用に入力コールバックを再設定（確実に設定するため）
-        if (this.mode === GameMode.VERSUS_HUMAN && this.leftInputManager) {
+        if (this.mode === GameMode.VERSUS_HUMAN && this.leftInputManager && this.leftGame) {
             this.leftInputManager.setAnswerCallback((answer) => {
                 console.log('VersusGame: Left player answer:', answer);
-                this.leftGame.handleAnswer(answer);
+                if (this.leftGame && this.leftGame.handleAnswer) {
+                    this.leftGame.handleAnswer(answer);
+                } else {
+                    console.error('VersusGame: leftGame is null or missing handleAnswer method');
+                }
             });
         }
-        this.rightInputManager.setAnswerCallback((answer) => {
-            console.log('VersusGame: Right player answer:', answer);
-            this.rightGame.handleAnswer(answer);
-        });
+        
+        if (this.rightInputManager && this.rightGame) {
+            this.rightInputManager.setAnswerCallback((answer) => {
+                console.log('VersusGame: Right player answer:', answer);
+                if (this.rightGame && this.rightGame.handleAnswer) {
+                    this.rightGame.handleAnswer(answer);
+                } else {
+                    console.error('VersusGame: rightGame is null or missing handleAnswer method');
+                }
+            });
+        }
         
         console.log('VersusGame: Input callbacks set');
         
@@ -192,6 +224,7 @@ class VersusGame {
         }
         
         // ゲームループ開始
+        this.isRunning = true;
         console.log('VersusGame: Starting game loop');
         this.gameLoop();
     }
@@ -208,8 +241,12 @@ class VersusGame {
             }
         }
         
-        // 結果画面が表示されるまでループを継続
-        requestAnimationFrame(() => this.gameLoop());
+        // ゲームが実行中の場合のみループを継続
+        if (this.isRunning) {
+            requestAnimationFrame(() => this.gameLoop());
+        } else {
+            console.log('VersusGame: Game loop stopped');
+        }
     }
     
     updateCPUDebugDisplay() {
@@ -268,6 +305,7 @@ class VersusGame {
         
         this.gameEnded = true;
         this.winner = winner;
+        this.isRunning = false; // VersusGameのループも停止
         
         // CPUを停止
         if (this.cpuPlayer) {
@@ -277,9 +315,23 @@ class VersusGame {
         // 両ゲームのブロック処理を確実に停止
         if (this.leftGame) {
             this.leftGame.state = 'game_over';
+            this.leftGame.isRunning = false;
+            // ゲームループを確実に停止
+            this.leftGame.stop();
+            // ブロックマネージャーを停止
+            if (this.leftGame.blockManager) {
+                this.leftGame.blockManager.clear();
+            }
         }
         if (this.rightGame) {
             this.rightGame.state = 'game_over';
+            this.rightGame.isRunning = false;
+            // ゲームループを確実に停止
+            this.rightGame.stop();
+            // ブロックマネージャーを停止
+            if (this.rightGame.blockManager) {
+                this.rightGame.blockManager.clear();
+            }
         }
         
         // 対戦モードのスコアを記録
@@ -296,17 +348,19 @@ class VersusGame {
         
         // 両プレイヤーのスコアを記録
         if (this.leftGame && this.rightGame) {
-            // 左プレイヤー（CPU対戦時はCPU、人間対戦時はプレイヤー1）のスコア記録
-            if (this.mode === GameMode.VERSUS_HUMAN) {
+            if (this.mode === GameMode.VERSUS_CPU) {
+                // CPU対戦時：右側のプレイヤーのスコアのみ記録（左側はCPU）
+                console.log('DEBUG: Recording player score (right side)');
+                this.recordPlayerScore(this.rightGame, 'プレイヤー');
+            } else if (this.mode === GameMode.VERSUS_HUMAN) {
+                // 人間対戦時：左側はプレイヤー1、右側はプレイヤー2
                 const leftPlayerName = this.playerNames && this.playerNames.player1 ? this.playerNames.player1 : 'プレイヤー1';
+                const rightPlayerName = this.playerNames && this.playerNames.player2 ? this.playerNames.player2 : 'プレイヤー2';
                 console.log('DEBUG: Recording left player score for:', leftPlayerName);
                 this.recordPlayerScore(this.leftGame, leftPlayerName);
+                console.log('DEBUG: Recording right player score for:', rightPlayerName);
+                this.recordPlayerScore(this.rightGame, rightPlayerName);
             }
-            
-            // 右プレイヤー（プレイヤー2）のスコア記録
-            const rightPlayerName = this.playerNames && this.playerNames.player2 ? this.playerNames.player2 : 'プレイヤー2';
-            console.log('DEBUG: Recording right player score for:', rightPlayerName);
-            this.recordPlayerScore(this.rightGame, rightPlayerName);
         }
     }
     
@@ -323,7 +377,7 @@ class VersusGame {
                 operations: this.getOperations(),
                 minNum: this.getMinNum(),
                 maxNum: this.getMaxNum(),
-                difficulty: this.difficulty,
+                difficulty: this.difficulty?.name || 'normal', // 難易度名を文字列で保存
                 training: this.training,
                 correctAnswers: game.correctAnswers,
                 wrongAnswers: game.wrongAnswers,
@@ -338,7 +392,20 @@ class VersusGame {
             // スコアマネージャーに記録
             if (game.scoreManager) {
                 console.log('DEBUG: Adding score to scoreManager for:', playerName);
+                console.log('DEBUG: Score data being added:', scoreData);
                 game.scoreManager.addScore(scoreData);
+                
+                // 実際に保存されたかを確認
+                const allScores = game.scoreManager.getAllScores();
+                const justAdded = allScores.find(s => 
+                    s.score === scoreData.score && 
+                    s.username === playerName && 
+                    Math.abs(new Date(s.timestamp) - new Date(scoreData.timestamp)) < 1000
+                );
+                console.log('DEBUG: Score successfully saved?', !!justAdded);
+                if (justAdded) {
+                    console.log('DEBUG: Saved score data:', justAdded);
+                }
             } else {
                 console.log('ERROR: scoreManager not found for:', playerName);
             }
@@ -452,6 +519,14 @@ class VersusGame {
                     // 対戦画面を非表示にしてメニューに戻る
                     document.getElementById('versusGameScreen').style.display = 'none';
                     document.getElementById('startScreen').style.display = 'block';
+                    
+                    // 選択状態をクリア
+                    if (window.gameUIManager && window.gameUIManager.clearGameSettings) {
+                        window.gameUIManager.clearGameSettings();
+                    }
+                    if (window.uiManager && window.uiManager.clearSelections) {
+                        window.uiManager.clearSelections();
+                    }
                 });
             }
             
@@ -553,6 +628,10 @@ class VersusGame {
             const trainingConfig = CONFIG.TRAINING_MODES[this.training];
             return trainingConfig?.minNum || 1;
         }
+        // 難易度に基づいて数値範囲を決定
+        if (this.difficulty && this.difficulty.minNum !== undefined) {
+            return this.difficulty.minNum;
+        }
         return 1;
     }
     
@@ -560,6 +639,10 @@ class VersusGame {
         if (this.training) {
             const trainingConfig = CONFIG.TRAINING_MODES[this.training];
             return trainingConfig?.maxNum || 10;
+        }
+        // 難易度に基づいて数値範囲を決定
+        if (this.difficulty && this.difficulty.maxNum !== undefined) {
+            return this.difficulty.maxNum;
         }
         return 10;
     }

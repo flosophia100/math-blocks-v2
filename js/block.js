@@ -52,7 +52,7 @@ class Block {
                 this.hintAlpha = 0;
                 // 元の色に戻す
                 this.color = this.originalColor || CONFIG.COLORS.BLOCKS[this.problem.operation] || '#95a5a6';
-                console.log(`ヒント表示終了: showHint=${this.showHint}, isHint=${this.isHint}, color=${this.color}`);
+                // console.log(`ヒント表示終了: showHint=${this.showHint}, isHint=${this.isHint}, color=${this.color}`);
             }
         }
         
@@ -365,7 +365,7 @@ class Block {
     // ヒント表示を開始
     showHintCalculation(hintData, duration = 3000) {
         if (!hintData) {
-            console.log('ヒントデータがnullです');
+            // console.log('ヒントデータがnullです');
             return;
         }
         
@@ -378,7 +378,7 @@ class Block {
         this.fadePhase = 'fade_in_hint';
         this.hintAlpha = 0;
         
-        console.log(`ヒント表示開始: isHint=${this.isHint}, showHint=${this.showHint}, hintText="${this.hintText}", originalProblem="${this.problem.expression}", fadePhase=${this.fadePhase}`);
+        // console.log(`ヒント表示開始: isHint=${this.isHint}, showHint=${this.showHint}, hintText="${this.hintText}", originalProblem="${this.problem.expression}", fadePhase=${this.fadePhase}`);
     }
 }
 
@@ -439,7 +439,7 @@ class BlockManager {
         
         if (this.hintTransformTimer >= this.hintTransformInterval) {
             this.hintTransformTimer = 0;
-            console.log('ヒント変化タイマー発火');
+            // console.log('ヒント変化タイマー発火');
             this.tryTransformBlocksToHint();
         }
     }
@@ -463,10 +463,10 @@ class BlockManager {
             }
         });
         
-        console.log(`ヒント変化候補ブロック数: ${candidateBlocks.length}, 確率: ${this.hintTransformChance}`);
+        // console.log(`ヒント変化候補ブロック数: ${candidateBlocks.length}, 確率: ${this.hintTransformChance}`);
         
         if (candidateBlocks.length === 0) {
-            console.log('ヒント変化候補ブロックなし');
+            // console.log('ヒント変化候補ブロックなし');
             return;
         }
         
@@ -480,16 +480,16 @@ class BlockManager {
             if (difficultBlocks.length > 0) {
                 // 難しい計算から選択
                 const selectedBlock = difficultBlocks[Math.floor(Math.random() * difficultBlocks.length)];
-                console.log(`ヒント変化対象ブロック選択（難しい計算）: ${selectedBlock.problem.expression}`);
+                // console.log(`ヒント変化対象ブロック選択（難しい計算）: ${selectedBlock.problem.expression}`);
                 this.transformBlockToHint(selectedBlock);
             } else {
                 // 難しい計算がない場合は全体から選択
                 const randomBlock = candidateBlocks[Math.floor(Math.random() * candidateBlocks.length)];
-                console.log(`ヒント変化対象ブロック選択（ランダム）: ${randomBlock.problem.expression}`);
+                // console.log(`ヒント変化対象ブロック選択（ランダム）: ${randomBlock.problem.expression}`);
                 this.transformBlockToHint(randomBlock);
             }
         } else {
-            console.log('ヒント変化確率に当選せず');
+            // console.log('ヒント変化確率に当選せず');
         }
     }
     
@@ -538,10 +538,10 @@ class BlockManager {
             block.color = '#3498db'; // ヒントブロック色に変更
             block.showHintCalculation(hintData, duration);
             
-            console.log(`ブロックヒント化成功: ${block.problem.expression} → ${hintData.expression} (${duration}ms)`);
-            console.log(`ブロック状態: isHint=${block.isHint}, showHint=${block.showHint}, color=${block.color}`);
+            // console.log(`ブロックヒント化成功: ${block.problem.expression} → ${hintData.expression} (${duration}ms)`);
+            // console.log(`ブロック状態: isHint=${block.isHint}, showHint=${block.showHint}, color=${block.color}`);
         } else {
-            console.log(`ヒント生成失敗: ${block.problem.expression}`);
+            // console.log(`ヒント生成失敗: ${block.problem.expression}`);
         }
     }
     
@@ -594,10 +594,11 @@ class BlockManager {
         }
         
         // ゲームオーバー状態チェック（ブロック生成と落下を停止）
-        const isGameOver = this.game && this.game.state === 'game_over';
+        const isGameOver = this.game && (this.game.state === 'game_over' || this.game.state === GameState.GAME_OVER);
+        const isGameStopped = this.game && (this.game.isRunning === false);
         
-        // タイムストップ中またはゲームオーバー時は新しいブロック生成と落下を停止
-        if (!this.isTimeStopActive && !isGameOver) {
+        // タイムストップ中、ゲームオーバー時、またはゲーム停止時は新しいブロック生成と落下を停止
+        if (!this.isTimeStopActive && !isGameOver && !isGameStopped) {
             // ブロック生成タイマー更新
             this.nextBlockTimer += deltaTime;
             
@@ -810,17 +811,31 @@ class BlockManager {
     }
     
     setDifficulty(difficulty, trainingMode = null) {
-        this.difficulty = difficulty;
-        this.blockInterval = difficulty.initialSpeed;
-        this.fallingSpeed = 50 / (difficulty.initialSpeed / 1000);
+        console.log('BlockManager: setDifficulty called with:', difficulty, 'type:', typeof difficulty);
+        if (!difficulty) {
+            console.error('BlockManager: setDifficulty called with null/undefined difficulty');
+            // デフォルト難易度を設定
+            this.difficulty = CONFIG.DIFFICULTY['normal'] || {
+                name: 'ノーマル',
+                initialSpeed: 1000,
+                maxBlocks: 2,
+                numberRangeIncrease: false
+            };
+        } else {
+            this.difficulty = difficulty;
+            console.log('BlockManager: Difficulty set to:', this.difficulty);
+        }
+        
+        this.blockInterval = this.difficulty.initialSpeed;
+        this.fallingSpeed = 50 / (this.difficulty.initialSpeed / 1000);
         
         // 特訓モード・通常モード問わず、難易度に応じた複数ブロック生成を適用
-        if (difficulty.name === 'ノーマル') {
-            this.maxBlocks = Math.min(2, difficulty.maxBlocks); // 最初から2個
-        } else if (difficulty.name === 'ハード') {
-            this.maxBlocks = Math.min(3, difficulty.maxBlocks); // 最初から3個
-        } else if (difficulty.name === 'エクストリーム') {
-            this.maxBlocks = Math.min(4, difficulty.maxBlocks); // 最初から4個
+        if (this.difficulty.name === 'ノーマル') {
+            this.maxBlocks = Math.min(2, this.difficulty.maxBlocks); // 最初から2個
+        } else if (this.difficulty.name === 'ハード') {
+            this.maxBlocks = Math.min(3, this.difficulty.maxBlocks); // 最初から3個
+        } else if (this.difficulty.name === 'エクストリーム') {
+            this.maxBlocks = Math.min(4, this.difficulty.maxBlocks); // 最初から4個
         }
         // イージー、入門は元の設定（1個）のまま
     }
