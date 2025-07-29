@@ -616,9 +616,14 @@ class UIManager {
     }
     
     showScreen(screenName) {
+        console.log('UIManager.showScreen called with:', screenName);
+        console.log('Available screens:', Object.keys(this.screens));
+        console.log('Target screen element exists:', !!this.screens[screenName]);
+        
         Object.keys(this.screens).forEach(name => {
             if (this.screens[name]) {
                 this.screens[name].style.display = name === screenName ? 'block' : 'none';
+                console.log(`Screen ${name}: display = ${this.screens[name].style.display}`);
             }
         });
         
@@ -736,9 +741,18 @@ class UIManager {
     }
     
     showGameOver(stats) {
-        this.elements.finalScore.textContent = stats.score;
-        this.elements.finalLevel.textContent = stats.level;
-        this.elements.finalMaxCombo.textContent = stats.maxCombo;
+        console.log('UIManager.showGameOver called with stats:', stats);
+        console.log('UIManager.elements.finalScore exists:', !!this.elements.finalScore);
+        
+        if (this.elements.finalScore) {
+            this.elements.finalScore.textContent = stats.score;
+        }
+        if (this.elements.finalLevel) {
+            this.elements.finalLevel.textContent = stats.level;
+        }
+        if (this.elements.finalMaxCombo) {
+            this.elements.finalMaxCombo.textContent = stats.maxCombo;
+        }
         
         // 自動保存はスコアボード表示時に実行（showScoreScreenメソッドに移動）
         
@@ -781,6 +795,7 @@ class UIManager {
             this.removeHighScoreEffects();
         }
         
+        console.log('UIManager: Calling showScreen with gameOver');
         this.showScreen('gameOver');
     }
     
@@ -1832,9 +1847,24 @@ class UIManager {
         // ゲーム難易度をCPU難易度として使用
         const cpuLevel = this.selectedDifficulty;
         
+        // 既存のVersusGameインスタンスをクリーンアップ
+        if (this.versusGame) {
+            console.log('Cleaning up existing VersusGame instance');
+            this.versusGame.destroy();
+            this.versusGame = null;
+        }
+        
+        // グローバル参照もクリーンアップ
+        if (window.currentVersusGame) {
+            console.log('Cleaning up global VersusGame reference');
+            window.currentVersusGame.destroy();
+            window.currentVersusGame = null;
+        }
+        
         // 対戦ゲームインスタンスを作成
         console.log('Creating VersusGame with:', { mode, difficulty: difficultyObj, training, cpuLevel });
         this.versusGame = new VersusGame(mode, difficultyObj, training, cpuLevel);
+        window.currentVersusGame = this.versusGame; // グローバル参照を設定
         
         // プレイヤー名を設定
         if (mode === GameMode.VERSUS_CPU) {
@@ -1883,6 +1913,13 @@ class UIManager {
                     this.versusGame.destroy();
                     this.versusGame = null;
                 }
+                
+                // グローバル参照もクリーンアップ
+                if (window.currentVersusGame) {
+                    window.currentVersusGame.destroy();
+                    window.currentVersusGame = null;
+                }
+                
                 this.showScreen('start');
                 console.log('quitVersusGame: Successfully returned to start screen');
             }
@@ -2148,10 +2185,25 @@ class UIManager {
         }
         
         // ゲーム開始
+        // 既存のVersusGameインスタンスをクリーンアップ
+        if (this.versusGame) {
+            console.log('startVersusGameWithPlayers: Cleaning up existing VersusGame instance');
+            this.versusGame.destroy();
+            this.versusGame = null;
+        }
+        
+        // グローバル参照もクリーンアップ
+        if (window.currentVersusGame) {
+            console.log('startVersusGameWithPlayers: Cleaning up global VersusGame reference');
+            window.currentVersusGame.destroy();
+            window.currentVersusGame = null;
+        }
+        
         // 難易度文字列をCONFIG.DIFFICULTYオブジェクトに変換
         const difficultyObj = CONFIG.DIFFICULTY[settings.difficulty] || CONFIG.DIFFICULTY['normal'];
         const cpuLevel = settings.difficulty; // 2人対戦ではCPUレベルは使わないが、互換性のため
         this.versusGame = new VersusGame(settings.mode, difficultyObj, settings.training, cpuLevel, this.versusPlayerNames);
+        window.currentVersusGame = this.versusGame; // グローバル参照を設定
         this.versusGame.start();
     }
 }

@@ -287,12 +287,19 @@ class Game {
             }
         }
         
-        // ゲームが実行中で停止されていない場合のみ継続
-        // 修正: isRunningフラグが最優先 - 対戦モードでもisRunning=falseなら停止
-        if (this.isRunning && (this.state === 'playing' || this.state === GameState.PLAYING)) {
+        // ゲームループ継続条件
+        // - isRunningがtrueで通常プレイ中
+        // - または爆発エフェクト実行中（ゲームオーバー状態でも継続）
+        const shouldContinue = this.isRunning && (
+            this.state === 'playing' || 
+            this.state === GameState.PLAYING ||
+            this.gameOverExplosion  // 爆発エフェクト実行中は継続
+        );
+        
+        if (shouldContinue) {
             requestAnimationFrame(() => this.gameLoop());
         } else {
-            console.log(`Game[${this.versusSide}]: Game loop stopped - isRunning: ${this.isRunning}, state: ${this.state}`);
+            console.log(`Game[${this.versusSide}]: Game loop stopped - isRunning: ${this.isRunning}, state: ${this.state}, hasExplosion: ${!!this.gameOverExplosion}`);
         }
     }
     
@@ -785,6 +792,9 @@ class Game {
         // ゲームオーバー爆発エフェクト更新
         if (this.gameOverExplosion) {
             this.gameOverExplosion.time += deltaTime;
+            if (this.gameOverExplosion.time === deltaTime) {
+                console.log('GameOverExplosion update started');
+            }
             
             // パーティクル更新
             this.gameOverExplosion.particles.forEach(particle => {
@@ -796,6 +806,8 @@ class Game {
             if (this.gameOverExplosion.time >= this.gameOverExplosion.duration) {
                 const callback = this.gameOverExplosion.callback;
                 this.gameOverExplosion = null;
+                console.log('GameOverExplosion finished, stopping game loop');
+                this.isRunning = false; // 爆発エフェクト完了後にゲームループ停止
                 if (callback) {
                     callback();
                 }
@@ -955,6 +967,7 @@ class Game {
     }
     
     showGameOverExplosion(callback = null) {
+        console.log('showGameOverExplosion called, creating explosion effect');
         this.gameOverExplosion = {
             time: 0,
             duration: 2000, // 2秒間のエフェクト
@@ -1124,7 +1137,7 @@ class Game {
         
         // 対戦・通常問わず状態をGAME_OVERに設定してゲーム処理を停止
         this.state = GameState.GAME_OVER;
-        this.isRunning = false; // ゲームループ停止
+        // 注意: isRunningはまだfalseにしない（爆発エフェクトのため）
         
         // タイマーとインターバルを確実に停止
         if (this.blockManager) {
@@ -1157,10 +1170,40 @@ class Game {
             };
             
             this.showGameOverExplosion(() => {
-                if (this.uiManager) {
-                this.uiManager.showGameOver(stats);
-            }
+                console.log('GameOverExplosion callback called, uiManager exists:', !!this.uiManager);
+                if (this.uiManager && this.uiManager.showGameOver) {
+                    console.log('Calling uiManager.showGameOver with stats:', stats);
+                    this.uiManager.showGameOver(stats);
+                } else {
+                    console.error('UIManager or showGameOver method not found', {
+                        uiManagerExists: !!this.uiManager,
+                        showGameOverExists: !!(this.uiManager && this.uiManager.showGameOver)
+                    });
+                    // フォールバック処理：直接結果画面を表示
+                    this.showGameOverScreenDirectly(stats);
+                }
             });
+        }
+    }
+    
+    // フォールバック：直接結果画面を表示
+    showGameOverScreenDirectly(stats) {
+        console.log('Showing game over screen directly');
+        const gameScreen = document.getElementById('gameScreen');
+        const resultScreen = document.getElementById('resultScreen');
+        
+        if (gameScreen) gameScreen.classList.add('hidden');
+        if (resultScreen) {
+            resultScreen.classList.remove('hidden');
+            
+            // 結果データを表示
+            const finalScoreElement = document.getElementById('finalScore');
+            const finalLevelElement = document.getElementById('finalLevel');
+            const finalComboElement = document.getElementById('finalCombo');
+            
+            if (finalScoreElement) finalScoreElement.textContent = stats.score || 0;
+            if (finalLevelElement) finalLevelElement.textContent = stats.level || 1;
+            if (finalComboElement) finalComboElement.textContent = stats.maxCombo || 0;
         }
     }
     

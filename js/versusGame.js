@@ -191,22 +191,42 @@ class VersusGame {
         // 対戦モード用に入力コールバックを再設定（確実に設定するため）
         if (this.mode === GameMode.VERSUS_HUMAN && this.leftInputManager && this.leftGame) {
             this.leftInputManager.setAnswerCallback((answer) => {
+                // ゲーム終了チェック
+                if (this.gameEnded || !this.isRunning) {
+                    console.log('VersusGame: Game ended, ignoring left player input');
+                    return;
+                }
+                
                 console.log('VersusGame: Left player answer:', answer);
-                if (this.leftGame && this.leftGame.handleAnswer) {
+                if (this.leftGame && this.leftGame.handleAnswer && this.leftGame.state === 'playing') {
                     this.leftGame.handleAnswer(answer);
                 } else {
-                    console.error('VersusGame: leftGame is null or missing handleAnswer method');
+                    console.error('VersusGame: leftGame is null, missing handleAnswer method, or not playing', {
+                        leftGameExists: !!this.leftGame,
+                        hasHandleAnswer: !!(this.leftGame && this.leftGame.handleAnswer),
+                        gameState: this.leftGame ? this.leftGame.state : 'null'
+                    });
                 }
             });
         }
         
         if (this.rightInputManager && this.rightGame) {
             this.rightInputManager.setAnswerCallback((answer) => {
+                // ゲーム終了チェック
+                if (this.gameEnded || !this.isRunning) {
+                    console.log('VersusGame: Game ended, ignoring right player input');
+                    return;
+                }
+                
                 console.log('VersusGame: Right player answer:', answer);
-                if (this.rightGame && this.rightGame.handleAnswer) {
+                if (this.rightGame && this.rightGame.handleAnswer && this.rightGame.state === 'playing') {
                     this.rightGame.handleAnswer(answer);
                 } else {
-                    console.error('VersusGame: rightGame is null or missing handleAnswer method');
+                    console.error('VersusGame: rightGame is null, missing handleAnswer method, or not playing', {
+                        rightGameExists: !!this.rightGame,
+                        hasHandleAnswer: !!(this.rightGame && this.rightGame.handleAnswer),
+                        gameState: this.rightGame ? this.rightGame.state : 'null'
+                    });
                 }
             });
         }
@@ -301,8 +321,15 @@ class VersusGame {
     }
     
     handleGameOver(winner) {
-        if (this.gameEnded) return;
+        console.log('VersusGame: handleGameOver called with winner:', winner, 'gameEnded:', this.gameEnded);
         
+        // 重複実行を完全に防ぐ
+        if (this.gameEnded) {
+            console.log('VersusGame: handleGameOver already processed, ignoring');
+            return;
+        }
+        
+        console.log('VersusGame: Processing game over...');
         this.gameEnded = true;
         this.winner = winner;
         this.isRunning = false; // VersusGameのループも停止
@@ -671,11 +698,59 @@ class VersusGame {
     
     // VersusGameインスタンス自体を停止
     destroy() {
-        this.quit();
-        this.leftGame = null;
-        this.rightGame = null;
-        this.cpuPlayer = null;
-        console.log('VersusGame: destroyed');
+        console.log('VersusGame: destroy() called');
+        
+        // ゲーム終了フラグを設定
+        this.gameEnded = true;
+        this.isRunning = false;
+        
+        // CPUプレイヤーを停止
+        if (this.cpuPlayer) {
+            this.cpuPlayer.stop();
+            this.cpuPlayer = null;
+        }
+        
+        // 左右のゲームインスタンスを完全に停止
+        if (this.leftGame) {
+            this.leftGame.isRunning = false;
+            this.leftGame.state = 'game_over';
+            if (this.leftGame.blockManager) {
+                this.leftGame.blockManager.clear();
+            }
+            if (this.leftGame.hintSystem && this.leftGame.hintSystem.stop) {
+                this.leftGame.hintSystem.stop();
+            }
+            this.leftGame = null;
+        }
+        
+        if (this.rightGame) {
+            this.rightGame.isRunning = false;
+            this.rightGame.state = 'game_over';
+            if (this.rightGame.blockManager) {
+                this.rightGame.blockManager.clear();
+            }
+            if (this.rightGame.hintSystem && this.rightGame.hintSystem.stop) {
+                this.rightGame.hintSystem.stop();
+            }
+            this.rightGame = null;
+        }
+        
+        // 入力マネージャーをクリーンアップ
+        if (this.leftInputManager && this.leftInputManager.destroy) {
+            this.leftInputManager.destroy();
+        }
+        this.leftInputManager = null;
+        
+        if (this.rightInputManager && this.rightInputManager.destroy) {
+            this.rightInputManager.destroy();
+        }
+        this.rightInputManager = null;
+        
+        // その他のプロパティをクリア
+        this.winner = null;
+        this.playerNames = null;
+        
+        console.log('VersusGame: destroyed completely');
     }
 }
 
@@ -764,6 +839,25 @@ class VersusInputManager extends InputManager {
     setupButtonEventListeners() {
         // 新しいHTMLレイアウトではボタンクリックイベントは不要
         // キーボード入力のみを使用
+    }
+    
+    // 入力マネージャーのクリーンアップ
+    destroy() {
+        console.log(`VersusInputManager[${this.side}]: Destroying and removing event listeners`);
+        
+        // キーイベントリスナーを削除
+        if (this.keydownHandler) {
+            document.removeEventListener('keydown', this.keydownHandler);
+            this.keydownHandler = null;
+        }
+        
+        // answerCallbackをクリア
+        this.answerCallback = null;
+        
+        // 表示要素をクリア
+        this.answerDisplay = null;
+        
+        console.log(`VersusInputManager[${this.side}]: Destroyed successfully`);
     }
 }
 
