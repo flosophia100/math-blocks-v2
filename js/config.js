@@ -3,7 +3,7 @@ const CONFIG = {
     GRID: {
         COLS: 7,
         ROWS: 10,
-        CELL_SIZE: 80 // 7列に対応してサイズ調整
+        CELL_SIZE: 70 // 1080p最適化: 7列×70px = 490px幅
     },
     DIFFICULTY: {
         veryeasy: {
