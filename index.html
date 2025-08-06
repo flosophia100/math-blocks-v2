@@ -529,34 +529,44 @@
             <div class="versus-game-container">
                 <!-- 左プレイヤーエリア -->
                 <div class="versus-player-area">
-                    <div class="versus-player-header">
-                        <h2 id="leftPlayerName">プレイヤー1</h2>
-                        <div class="versus-player-stats">
-                            <span class="versus-stat">スコア: <span id="leftScore">0</span></span>
-                            <span class="versus-stat">コンボ: <span id="leftCombo">0</span></span>
+                    <div class="versus-game-area">
+                        <canvas id="leftGameCanvas" class="versus-canvas"></canvas>
+                    </div>
+                    <div class="versus-info-panel">
+                        <div class="versus-player-header">
+                            <h2 id="leftPlayerName">プレイヤー1</h2>
+                            <div class="versus-player-stats">
+                                <div class="versus-stat">スコア <span id="leftScore">0</span></div>
+                                <div class="versus-stat">レベル <span id="leftLevel">1</span></div>
+                                <div class="versus-stat">コンボ <span id="leftCombo">0</span></div>
+                            </div>
+                        </div>
+                        <div class="versus-input-area">
+                            <input type="text" id="leftAnswerDisplay" class="versus-answer-input" readonly placeholder="回答入力">
                         </div>
                     </div>
-                    <div class="versus-input-area">
-                        <input type="text" id="leftAnswerDisplay" class="versus-answer-input" readonly placeholder="回答入力">
-                    </div>
-                    <canvas id="leftGameCanvas" class="versus-canvas"></canvas>
                 </div>
                 
                 <div class="versus-separator">VS</div>
                 
                 <!-- 右プレイヤーエリア -->
                 <div class="versus-player-area">
-                    <div class="versus-player-header">
-                        <h2 id="rightPlayerName">プレイヤー2</h2>
-                        <div class="versus-player-stats">
-                            <span class="versus-stat">スコア: <span id="rightScore">0</span></span>
-                            <span class="versus-stat">コンボ: <span id="rightCombo">0</span></span>
+                    <div class="versus-game-area">
+                        <canvas id="rightGameCanvas" class="versus-canvas"></canvas>
+                    </div>
+                    <div class="versus-info-panel">
+                        <div class="versus-player-header">
+                            <h2 id="rightPlayerName">プレイヤー2</h2>
+                            <div class="versus-player-stats">
+                                <div class="versus-stat">スコア <span id="rightScore">0</span></div>
+                                <div class="versus-stat">レベル <span id="rightLevel">1</span></div>
+                                <div class="versus-stat">コンボ <span id="rightCombo">0</span></div>
+                            </div>
+                        </div>
+                        <div class="versus-input-area">
+                            <input type="text" id="rightAnswerDisplay" class="versus-answer-input" readonly placeholder="回答入力">
                         </div>
                     </div>
-                    <div class="versus-input-area">
-                        <input type="text" id="rightAnswerDisplay" class="versus-answer-input" readonly placeholder="回答入力">
-                    </div>
-                    <canvas id="rightGameCanvas" class="versus-canvas"></canvas>
                 </div>
             </div>
             

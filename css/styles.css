@@ -1203,32 +1203,47 @@ body {
 /* 対戦ゲーム画面 */
 #versusGameScreen {
     width: 100vw;
-    text-align: center;
-    overflow-x: auto; /* 横スクロール対応 */
+    height: 100vh;
+    padding: 8px;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .versus-game-container {
     display: flex;
-    gap: 40px;
+    gap: 12px;
     align-items: flex-start;
     justify-content: center;
-    margin-bottom: 20px;
-    min-width: 1200px; /* キャンバス幅 490px × 2 + gap + 余白 */
-    width: max-content; /* コンテンツに合わせて幅を調整 */
-    margin: 0 auto; /* 中央揃え */
+    flex: 1;
+    max-height: calc(100vh - 100px); /* ヘッダーとコントロール用余白 */
+    max-width: 1920px;
+    margin: 0 auto;
 }
 
 .versus-player-area {
     display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    max-width: calc(50vw - 30px);
+    flex: 1;
+}
+
+/* 情報パネル */
+.versus-info-panel {
+    width: 180px; /* 1080P最適化 - 縮小 */
+    display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    min-width: 600px; /* キャンバス幅 + 余白 */
+    gap: 8px;
+    flex: 0 0 auto;
 }
 
 .versus-player-header {
+    background: #ecf0f1;
+    border-radius: 8px;
+    padding: 10px;
     text-align: center;
-    margin-bottom: 5px;
 }
 
 .versus-player-header h2 {
@@ -1249,27 +1264,50 @@ body {
 }
 
 .versus-input-area {
-    width: 100%;
-    margin-bottom: 10px;
+    background: #ecf0f1;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* VS表示エリア */
+.versus-separator {
+    font-size: 32px;
+    font-weight: bold;
+    color: #e74c3c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px; /* 1080P最適化 - 縮小 */
+    height: 560px;
+    background: linear-gradient(45deg, #f8f9fa, #ecf0f1);
+    border-radius: 8px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .versus-answer-input {
-    width: 200px;
+    width: 100%;
     padding: 8px;
-    font-size: 18px;
+    font-size: 16px;
     text-align: center;
     border: 2px solid #3498db;
     border-radius: 4px;
     background: white;
+    box-sizing: border-box;
 }
 
-.versus-canvas {
+.versus-game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.versus-game-area canvas {
     border: 2px solid #34495e;
     background: white;
     border-radius: 4px;
-    width: 490px; /* 7列 × 70px */
-    height: 700px; /* 10行 × 70px */
-    max-width: 100%; /* 小さな画面でもはみ出さない */
+    width: 360px; /* 1080P最適化 - さらに縮小 */
+    height: 560px;
 }
 
 /* 1920×1080解像度対応 */
@@ -1287,23 +1325,39 @@ body {
     .side-panel {
         width: 320px; /* 広い画面では少し幅を広げる */
     }
+    
+    /* 対戦モード1080P最適化 */
+    .versus-game-container {
+        max-width: 1800px; /* 1920pxの画面に余裕を持たせる */
+        justify-content: space-evenly;
+    }
+    
+    .versus-game-area canvas {
+        width: 380px;
+        height: 580px;
+    }
+    
+    .versus-info-panel {
+        width: 190px;
+    }
+    
+    .versus-separator {
+        width: 70px;
+        height: 580px;
+        font-size: 36px;
+    }
 }
 
 /* レスポンシブ対応 */
-@media (max-width: 1440px) {
-    .versus-game-container {
-        gap: 20px; /* ギャップを縮小 */
-        min-width: 1100px;
-    }
-    
-    .versus-canvas {
-        width: 420px; /* キャンバスサイズを縮小 */
-        height: 600px;
-    }
-    
-    .versus-player-area {
-        min-width: 460px;
-    }
+.versus-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 10px;
+    flex: 0 0 auto;
 }
 
 @media (max-width: 1200px) {
