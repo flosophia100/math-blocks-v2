@@ -170,7 +170,8 @@ class VersusGame {
             minNum: this.getMinNum(),
             maxNum: this.getMaxNum(),
             carryBorrow: this.training === 'sakuranbo',
-            omiyageMode: this.training === 'omiyage'
+            omiyageMode: this.training === 'omiyage',
+            hundredMinusMode: this.training === 'hundred_minus'
         };
         
         console.log('VersusGame: Starting with settings:', settings);

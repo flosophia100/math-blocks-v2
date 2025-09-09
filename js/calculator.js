@@ -13,6 +13,7 @@ class Calculator {
         this.numberRangeIncrease = 3; // 難易度による数値範囲増加率
         this.isTrainingMode = false; // 特訓モードフラグ
         this.omiyageMode = false; // おみやげ算モード
+        this.hundredMinusMode = false; // 100引く算モード
     }
     
     setOperations(ops) {
@@ -40,6 +41,10 @@ class Calculator {
         this.omiyageMode = enabled;
     }
     
+    setHundredMinusMode(enabled) {
+        this.hundredMinusMode = enabled;
+    }
+    
     adjustDifficultyForLevel(level) {
         // 特訓モードの場合は数値範囲を絶対に固定（レベルの影響を受けない）
         if (this.isTrainingMode) {
@@ -53,6 +58,32 @@ class Calculator {
     }
     
     generateProblem(level = 1) {
+        // デバッグログ追加
+        console.log('Calculator.generateProblem called with hundredMinusMode:', this.hundredMinusMode);
+        
+        // 100引く算モードの場合は必ず引き算のみ
+        if (this.hundredMinusMode) {
+            const operation = 'sub';
+            const range = { min: this.minNum, max: this.maxNum };
+            
+            // 100引く算：必ず100から1～99を引く計算
+            const num1 = 100;
+            const num2 = this.randomInt(range.min, range.max);
+            const answer = num1 - num2;
+            const displayOp = '-';
+            
+            console.log('100引く算モード: 問題生成:', `${num1} ${displayOp} ${num2} = ${answer}`);
+            
+            return {
+                expression: `${num1} ${displayOp} ${num2}`,
+                answer: answer,
+                num1: num1,
+                num2: num2,
+                operation: displayOp
+            };
+        }
+        
+        // 通常の問題生成
         // 有効な演算子を取得
         const enabledOps = [];
         if (this.operations.add) enabledOps.push('add');

@@ -593,7 +593,8 @@ class UIManager {
                 minNum: trainingMode.minNum,
                 maxNum: trainingMode.maxNum,
                 carryBorrow: trainingMode.carryBorrow || false,
-                omiyageMode: trainingMode.omiyageMode || false
+                omiyageMode: trainingMode.omiyageMode || false,
+                hundredMinusMode: trainingMode.hundredMinusMode || false
             };
         }
         
@@ -611,7 +612,8 @@ class UIManager {
             minNum: this.elements.minNum ? parseInt(this.elements.minNum.value) : 1,
             maxNum: this.elements.maxNum ? parseInt(this.elements.maxNum.value) : 10,
             carryBorrow: false,
-            omiyageMode: false
+            omiyageMode: false,
+            hundredMinusMode: false
         };
     }
     

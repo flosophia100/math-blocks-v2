@@ -98,6 +98,14 @@ const CONFIG = {
             minNum: 1,
             maxNum: 500,
             description: '割り算の特訓'
+        },
+        hundred_minus: {
+            name: '100引く算',
+            operations: { add: false, sub: true, mul: false, div: false },
+            minNum: 1,
+            maxNum: 99,
+            hundredMinusMode: true,
+            description: '100から1～99を引く計算'
         }
     },
     SCORE: {
