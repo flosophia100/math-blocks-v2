@@ -274,8 +274,10 @@ body {
 }
 
 .score-level-combo {
-    display: flex;
+    display: flex !important;
+    flex-direction: row !important;
     justify-content: space-between;
+    align-items: center;
     width: 100%;
     gap: 8px;
 }
@@ -284,10 +286,12 @@ body {
 .level-display,
 .combo-display {
     flex: 1;
+    display: inline-block !important;
     text-align: center;
     margin-bottom: 0;
     min-width: 80px; /* 絶対値固定 */
     max-width: 90px; /* 絶対値固定 */
+    box-sizing: border-box;
 }
 
 .time-display {
