@@ -219,6 +219,22 @@ body {
     overflow: hidden;
 }
 
+/* 右パネル横並び配置の強制適用 */
+.info-panel .score-level-combo {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.info-panel .score-display,
+.info-panel .level-display,
+.info-panel .combo-display {
+    display: inline-block !important;
+    flex: 1 !important;
+    text-align: center !important;
+}
+
 .game-container {
     display: flex;
     gap: 12px;
