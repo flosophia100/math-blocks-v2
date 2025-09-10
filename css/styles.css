@@ -274,17 +274,20 @@ body {
 }
 
 .score-level-combo {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 4px;
+    display: flex;
+    justify-content: space-between;
     width: 100%;
+    gap: 8px;
 }
 
 .score-display,
 .level-display,
 .combo-display {
+    flex: 1;
     text-align: center;
     margin-bottom: 0;
+    min-width: 80px; /* 絶対値固定 */
+    max-width: 90px; /* 絶対値固定 */
 }
 
 .time-display {
