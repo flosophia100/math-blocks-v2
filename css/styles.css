@@ -267,7 +267,7 @@ body {
 }
 
 .side-panel {
-    width: 280px;
+    width: 336px; /* 280px + 20% = 336px */
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -305,8 +305,8 @@ body {
     display: inline-block !important;
     text-align: center;
     margin-bottom: 0;
-    min-width: 80px; /* 絶対値固定 */
-    max-width: 90px; /* 絶対値固定 */
+    min-width: 100px; /* 広いパネルに合わせて拡大 */
+    max-width: 110px; /* 広いパネルに合わせて拡大 */
     box-sizing: border-box;
 }
 
@@ -1196,7 +1196,7 @@ body {
     }
     
     .side-panel {
-        width: 240px;
+        width: 288px; /* 240px + 20% = 288px */
     }
     
     /* 対戦モード縦画面対応 */
@@ -1406,7 +1406,7 @@ body {
     }
     
     .side-panel {
-        width: 300px; /* 適度な幅を保つ */
+        width: 360px; /* 300px + 20% = 360px */
     }
     
     /* 対戦モード1080P最適化 */
