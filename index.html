@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MathBlocks - 計算ブロックゲーム</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=20240910-1248">
 </head>
 <body>
     <div id="app">
@@ -181,19 +181,21 @@
                             </div>
                         </div>
                         
-                        <div class="score-display">
-                            <h3>スコア</h3>
-                            <div id="score">0</div>
-                        </div>
-                        
-                        <div class="level-display">
-                            <h3>レベル</h3>
-                            <div id="level">1</div>
-                        </div>
-                        
-                        <div class="combo-display">
-                            <h3>コンボ</h3>
-                            <div id="combo">0</div>
+                        <div class="score-level-combo">
+                            <div class="score-display">
+                                <h3>スコア</h3>
+                                <div id="score">0</div>
+                            </div>
+                            
+                            <div class="level-display">
+                                <h3>レベル</h3>
+                                <div id="level">1</div>
+                            </div>
+                            
+                            <div class="combo-display">
+                                <h3>コンボ</h3>
+                                <div id="combo">0</div>
+                            </div>
                         </div>
                         
                         <div id="timeDisplay" class="time-display" style="display: none;">

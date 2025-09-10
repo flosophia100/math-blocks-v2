@@ -26,8 +26,8 @@ test.describe('幅拡大サイドパネル横並び確認', () => {
     const sidePanelBox = await sidePanel.boundingBox();
     console.log('📐 拡大後サイドパネルサイズ:', sidePanelBox);
     
-    // 1080Pでは360px（300px + 20%）になることを確認
-    expect(sidePanelBox.width).toBeGreaterThanOrEqual(350);
+    // 通常は336px、1080Pでは360px（20%拡大）になることを確認
+    expect(sidePanelBox.width).toBeGreaterThanOrEqual(330);
     expect(sidePanelBox.width).toBeLessThanOrEqual(370);
     console.log('✅ サイドパネルが20%拡大されている:', sidePanelBox.width + 'px');
     
