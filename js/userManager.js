@@ -155,19 +155,26 @@ class UserManager {
     async loginUser(username) {
         let user = this.users.get(username);
 
+        // ローカルにある場合はそのまま使用
+        if (user) {
+            this.currentUser = user;
+            this.isGuestMode = false;
+            this.saveCurrentSession();
+            return user;
+        }
+
         // ローカルにない場合はサーバーから取得
-        if (!user && this.isOnline && this.supabase) {
+        if (this.isOnline && this.supabase) {
             try {
                 const { data, error } = await this.supabase
                     .from('users')
                     .select('*')
-                    .eq('username', username)
-                    .single();
+                    .eq('username', username);
 
                 if (error) throw error;
 
-                if (data) {
-                    user = this.convertFromDB(data);
+                if (data && data.length > 0) {
+                    user = this.convertFromDB(data[0]);
                     this.users.set(username, user);
                     this.saveLocalUsers();
                 }
