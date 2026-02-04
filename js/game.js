@@ -1,5 +1,5 @@
 // メインゲームクラス
-// Version: 20260204-fix3 - error handling in gameOver
+// Version: 20260204-fix4 - explosion before async
 class Game {
     constructor(canvas) {
         this.canvas = canvas;
@@ -583,39 +583,40 @@ class Game {
     }
     
     
-    async gameComplete() {
+    gameComplete() {
         this.state = GameState.GAME_OVER;
 
         // スコアを記録（非同期）
         const scoreData = this.createScoreData(this.gameTime);
 
-        let scoreResult = { ranking: 1, isHighScore: false };
-        try {
-            scoreResult = await this.scoreManager.addScore(scoreData);
-        } catch (error) {
-            console.error('スコア保存エラー:', error);
-        }
+        // 爆発エフェクトを先に開始（ゲームループを継続させるため）
+        // 非同期処理はコールバック内で行う
+        this.showGameOverExplosion(async () => {
+            let scoreResult = { ranking: 1, isHighScore: false };
+            try {
+                scoreResult = await this.scoreManager.addScore(scoreData);
+            } catch (error) {
+                console.error('スコア保存エラー:', error);
+            }
 
-        // ユーザーデータを記録（非同期）
-        try {
-            await this.recordUserGameResult(scoreData);
-        } catch (error) {
-            console.error('ユーザー結果記録エラー:', error);
-        }
+            // ユーザーデータを記録（非同期）
+            try {
+                await this.recordUserGameResult(scoreData);
+            } catch (error) {
+                console.error('ユーザー結果記録エラー:', error);
+            }
 
-        const stats = {
-            score: this.score,
-            level: this.level,
-            maxCombo: this.maxCombo,
-            mode: this.mode,
-            clearTime: this.gameTime,
-            ranking: scoreResult.ranking,
-            isHighScore: scoreResult.isHighScore,
-            gameData: scoreData // 詳細記録用
-        };
+            const stats = {
+                score: this.score,
+                level: this.level,
+                maxCombo: this.maxCombo,
+                mode: this.mode,
+                clearTime: this.gameTime,
+                ranking: scoreResult.ranking,
+                isHighScore: scoreResult.isHighScore,
+                gameData: scoreData // 詳細記録用
+            };
 
-        // 爆発エフェクトを開始（gameCompleteでも統一）
-        this.showGameOverExplosion(() => {
             if (this.uiManager) {
                 this.uiManager.showGameOver(stats);
             }
@@ -1185,31 +1186,34 @@ class Game {
             this.state = GameState.GAME_OVER;
             const scoreData = this.createScoreData();
 
-            let scoreResult = { ranking: 1, isHighScore: false };
-            try {
-                scoreResult = await this.scoreManager.addScore(scoreData);
-            } catch (error) {
-                console.error('スコア保存エラー:', error);
-            }
-
-            try {
-                await this.recordUserGameResult(scoreData);
-            } catch (error) {
-                console.error('ユーザー結果記録エラー:', error);
-            }
-
-            const stats = {
-                score: this.score,
-                level: this.level,
-                maxCombo: this.maxCombo,
-                mode: this.mode,
-                ranking: scoreResult.ranking,
-                isHighScore: scoreResult.isHighScore,
-                gameData: scoreData
-            };
-
-            this.showGameOverExplosion(() => {
+            // 爆発エフェクトを先に開始（ゲームループを継続させるため）
+            // 非同期処理はコールバック内で行う
+            this.showGameOverExplosion(async () => {
                 console.log('GameOverExplosion callback called, uiManager exists:', !!this.uiManager);
+
+                let scoreResult = { ranking: 1, isHighScore: false };
+                try {
+                    scoreResult = await this.scoreManager.addScore(scoreData);
+                } catch (error) {
+                    console.error('スコア保存エラー:', error);
+                }
+
+                try {
+                    await this.recordUserGameResult(scoreData);
+                } catch (error) {
+                    console.error('ユーザー結果記録エラー:', error);
+                }
+
+                const stats = {
+                    score: this.score,
+                    level: this.level,
+                    maxCombo: this.maxCombo,
+                    mode: this.mode,
+                    ranking: scoreResult.ranking,
+                    isHighScore: scoreResult.isHighScore,
+                    gameData: scoreData
+                };
+
                 if (this.uiManager && this.uiManager.showGameOver) {
                     console.log('Calling uiManager.showGameOver with stats:', stats);
                     this.uiManager.showGameOver(stats);
