@@ -155,15 +155,7 @@ class UserManager {
     async loginUser(username) {
         let user = this.users.get(username);
 
-        // ローカルにある場合はそのまま使用
-        if (user) {
-            this.currentUser = user;
-            this.isGuestMode = false;
-            this.saveCurrentSession();
-            return user;
-        }
-
-        // ローカルにない場合はサーバーから取得
+        // サーバーからユーザーデータを取得してIDを確保
         if (this.isOnline && this.supabase) {
             try {
                 const { data, error } = await this.supabase
@@ -174,9 +166,24 @@ class UserManager {
                 if (error) throw error;
 
                 if (data && data.length > 0) {
-                    user = this.convertFromDB(data[0]);
+                    const serverUser = this.convertFromDB(data[0]);
+                    if (user) {
+                        // ローカルにある場合はIDを更新
+                        user.id = serverUser.id;
+                        // サーバーの統計データで更新
+                        user.totalScore = serverUser.totalScore;
+                        user.gamesPlayed = serverUser.gamesPlayed;
+                        user.bestScore = serverUser.bestScore;
+                        user.bestCombo = serverUser.bestCombo;
+                        user.totalCorrect = serverUser.totalCorrect;
+                        user.totalWrong = serverUser.totalWrong;
+                    } else {
+                        // ローカルにない場合はサーバーデータを使用
+                        user = serverUser;
+                    }
                     this.users.set(username, user);
                     this.saveLocalUsers();
+                    console.log('サーバーからユーザーデータを取得しました (id:', user.id, ')');
                 }
             } catch (error) {
                 console.error('ユーザー取得エラー:', error);
