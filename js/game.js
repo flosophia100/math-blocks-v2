@@ -582,16 +582,16 @@ class Game {
     }
     
     
-    gameComplete() {
+    async gameComplete() {
         this.state = GameState.GAME_OVER;
-        
-        // スコアを記録
+
+        // スコアを記録（非同期）
         const scoreData = this.createScoreData(this.gameTime);
-        const scoreResult = this.scoreManager.addScore(scoreData);
-        
-        // ユーザーデータを記録
-        this.recordUserGameResult(scoreData);
-        
+        const scoreResult = await this.scoreManager.addScore(scoreData);
+
+        // ユーザーデータを記録（非同期）
+        await this.recordUserGameResult(scoreData);
+
         const stats = {
             score: this.score,
             level: this.level,
@@ -602,7 +602,7 @@ class Game {
             isHighScore: scoreResult.isHighScore,
             gameData: scoreData // 詳細記録用
         };
-        
+
         // 爆発エフェクトを開始（gameCompleteでも統一）
         this.showGameOverExplosion(() => {
             if (this.uiManager) {
@@ -653,9 +653,9 @@ class Game {
     }
     
     // ユーザーゲーム結果を記録
-    recordUserGameResult(scoreData) {
+    async recordUserGameResult(scoreData) {
         if (!this.userManager || this.userManager.isGuest()) return;
-        
+
         const gameData = {
             mode: scoreData.mode,
             difficulty: scoreData.difficulty,
@@ -668,10 +668,10 @@ class Game {
             wrongAnswers: scoreData.wrongAnswers,
             avgTime: scoreData.avgAnswerTime
         };
-        
-        // ゲーム結果を記録（アイテム解放チェック込み）
-        const newItems = this.userManager.recordGameResult(gameData);
-        
+
+        // ゲーム結果を記録（アイテム解放チェック込み）- 非同期
+        const newItems = await this.userManager.recordGameResult(gameData);
+
         // 新しいアイテムがあった場合の通知
         if (newItems && newItems.length > 0) {
             this.showNewItemsNotification(newItems);
@@ -1150,13 +1150,13 @@ class Game {
     }
     
     // ゲームオーバー処理（対戦モード対応）
-    gameOver() {
+    async gameOver() {
         console.log('GameOver called, gameTime:', this.gameTime, 'isVersusMode:', this.isVersusMode);
-        
+
         // 対戦・通常問わず状態をGAME_OVERに設定してゲーム処理を停止
         this.state = GameState.GAME_OVER;
         // 注意: isRunningはまだfalseにしない（爆発エフェクトのため）
-        
+
         // タイマーとインターバルを確実に停止
         if (this.blockManager) {
             this.blockManager.clear();
@@ -1164,7 +1164,7 @@ class Game {
         if (this.hintSystem && this.hintSystem.stop) {
             this.hintSystem.stop();
         }
-        
+
         if (this.isVersusMode && this.gameOverCallback) {
             // 対戦モードの場合はコールバックを呼ぶ
             console.log('Calling versus game over callback');
@@ -1173,10 +1173,10 @@ class Game {
             // 通常モードの処理
             this.state = GameState.GAME_OVER;
             const scoreData = this.createScoreData();
-            const scoreResult = this.scoreManager.addScore(scoreData);
-            
-            this.recordUserGameResult(scoreData);
-            
+            const scoreResult = await this.scoreManager.addScore(scoreData);
+
+            await this.recordUserGameResult(scoreData);
+
             const stats = {
                 score: this.score,
                 level: this.level,
@@ -1186,7 +1186,7 @@ class Game {
                 isHighScore: scoreResult.isHighScore,
                 gameData: scoreData
             };
-            
+
             this.showGameOverExplosion(() => {
                 console.log('GameOverExplosion callback called, uiManager exists:', !!this.uiManager);
                 if (this.uiManager && this.uiManager.showGameOver) {
