@@ -1,48 +1,136 @@
-// スコア管理クラス
+// スコア管理クラス（Supabase対応版）
 class ScoreManager {
     constructor() {
-        this.scores = this.loadScores();
+        this.scores = [];
+        this.supabase = null;
+        this.isOnline = navigator.onLine;
+
+        // オンライン/オフライン監視
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+            this.syncLocalScores();
+        });
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+        });
+
+        // 初期化
+        this.init();
     }
-    
-    // ローカルストレージからスコアを読み込み
-    loadScores() {
-        try {
-            const saved = localStorage.getItem('mathblocks_scores');
-            const scores = saved ? JSON.parse(saved) : [];
-            
-            // 既存データの移行（gameTimeフィールドがない場合は0を設定）
-            let needsSave = false;
-            const migratedScores = scores.map(score => {
-                if (score.gameTime === undefined) {
-                    score.gameTime = 0;
-                    needsSave = true;
-                }
-                return score;
-            });
-            
-            // 移行が必要だった場合は保存
-            if (needsSave) {
-                localStorage.setItem('mathblocks_scores', JSON.stringify(migratedScores));
-            }
-            
-            return migratedScores;
-        } catch (error) {
-            console.error('スコア読み込みエラー:', error);
-            return [];
+
+    async init() {
+        // Supabase初期化
+        this.supabase = getSupabase();
+
+        // ローカルスコアを読み込み
+        this.loadLocalScores();
+
+        // オンラインならサーバーからも取得
+        if (this.isOnline && this.supabase) {
+            await this.fetchScoresFromServer();
         }
     }
-    
-    // スコアをローカルストレージに保存
-    saveScores() {
+
+    // サーバーからスコアを取得
+    async fetchScoresFromServer() {
+        try {
+            const { data, error } = await this.supabase
+                .from('scores')
+                .select('*')
+                .order('score', { ascending: false })
+                .limit(100);
+
+            if (error) throw error;
+
+            if (data) {
+                // サーバーのスコアをローカル形式に変換してマージ
+                const serverScores = data.map(s => this.convertFromDB(s));
+                this.mergeScores(serverScores);
+                this.saveLocalScores();
+            }
+
+            console.log('サーバーからスコアを取得しました');
+        } catch (error) {
+            console.error('スコア取得エラー:', error);
+        }
+    }
+
+    // DBフォーマットからアプリフォーマットに変換
+    convertFromDB(dbScore) {
+        return {
+            id: dbScore.id,
+            score: dbScore.score,
+            maxCombo: dbScore.max_combo,
+            level: dbScore.level,
+            mode: dbScore.mode,
+            difficulty: dbScore.difficulty,
+            training: dbScore.training,
+            correctAnswers: dbScore.correct_answers,
+            wrongAnswers: dbScore.wrong_answers,
+            gameTime: dbScore.game_time,
+            timestamp: dbScore.created_at,
+            username: dbScore.username,
+            synced: true
+        };
+    }
+
+    // アプリフォーマットからDBフォーマットに変換
+    convertToDB(score, userId = null) {
+        return {
+            user_id: userId,
+            username: score.username || 'ゲスト',
+            score: score.score,
+            level: score.level || 1,
+            max_combo: score.maxCombo || 0,
+            mode: score.mode,
+            difficulty: score.difficulty,
+            training: score.training || null,
+            correct_answers: score.correctAnswers || 0,
+            wrong_answers: score.wrongAnswers || 0,
+            game_time: score.gameTime || 0
+        };
+    }
+
+    // スコアをマージ（重複排除）
+    mergeScores(serverScores) {
+        const existingIds = new Set(this.scores.filter(s => s.id).map(s => s.id));
+        const existingTimestamps = new Set(this.scores.map(s => s.timestamp));
+
+        for (const score of serverScores) {
+            if (score.id && existingIds.has(score.id)) continue;
+            if (score.timestamp && existingTimestamps.has(score.timestamp)) continue;
+            this.scores.push(score);
+        }
+
+        // スコア順にソート
+        this.scores.sort((a, b) => b.score - a.score);
+
+        // 上位100件に制限
+        this.scores = this.scores.slice(0, 100);
+    }
+
+    // ローカルストレージからスコアを読み込み
+    loadLocalScores() {
+        try {
+            const saved = localStorage.getItem('mathblocks_scores');
+            this.scores = saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('スコア読み込みエラー:', error);
+            this.scores = [];
+        }
+    }
+
+    // ローカルストレージにスコアを保存
+    saveLocalScores() {
         try {
             localStorage.setItem('mathblocks_scores', JSON.stringify(this.scores));
         } catch (error) {
             console.error('スコア保存エラー:', error);
         }
     }
-    
+
     // 新しいスコアを記録
-    addScore(scoreData) {
+    async addScore(scoreData) {
         // 同条件での過去の最高スコアを取得
         const previousHighScore = this.getHighScoreForConditions(
             scoreData.operations,
@@ -51,7 +139,7 @@ class ScoreManager {
             scoreData.difficulty,
             scoreData.mode
         );
-        
+
         const record = {
             score: scoreData.score,
             maxCombo: scoreData.maxCombo,
@@ -61,37 +149,87 @@ class ScoreManager {
             minNum: scoreData.minNum,
             maxNum: scoreData.maxNum,
             difficulty: scoreData.difficulty,
+            training: scoreData.training || null,
             timestamp: new Date().toISOString(),
             clearTime: scoreData.clearTime || null,
-            gameTime: scoreData.gameTime || 0,  // ゲーム時間を追加
+            gameTime: scoreData.gameTime || 0,
             correctAnswers: scoreData.correctAnswers || 0,
             wrongAnswers: scoreData.wrongAnswers || 0,
             avgAnswerTime: scoreData.avgAnswerTime || 0,
-            username: scoreData.username || 'ゲスト'
+            username: scoreData.username || 'ゲスト',
+            synced: false
         };
-        
+
+        // サーバーに保存
+        if (this.isOnline && this.supabase) {
+            try {
+                const { data, error } = await this.supabase
+                    .from('scores')
+                    .insert([this.convertToDB(record)])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    record.id = data.id;
+                    record.synced = true;
+                    console.log('スコアをサーバーに保存しました');
+                }
+            } catch (error) {
+                console.error('サーバー保存エラー:', error);
+            }
+        }
+
         this.scores.push(record);
-        
+
         // スコア順にソート（降順）
         this.scores.sort((a, b) => b.score - a.score);
-        
+
         // 最大100件まで保持
         this.scores = this.scores.slice(0, 100);
-        
-        this.saveScores();
-        
-        // ログファイル形式でコンソールに出力（開発時確認用）
+
+        this.saveLocalScores();
+
+        // ログ出力
         this.logScoreToConsole(record);
-        
+
         // ハイスコアかどうかを判定
         const isHighScore = scoreData.score > previousHighScore;
-        
+
         return {
             ranking: this.scores.indexOf(record) + 1,
             isHighScore: isHighScore
         };
     }
-    
+
+    // ローカルの未同期スコアをサーバーに同期
+    async syncLocalScores() {
+        if (!this.isOnline || !this.supabase) return;
+
+        const unsyncedScores = this.scores.filter(s => !s.synced);
+
+        for (const score of unsyncedScores) {
+            try {
+                const { data, error } = await this.supabase
+                    .from('scores')
+                    .insert([this.convertToDB(score)])
+                    .select()
+                    .single();
+
+                if (!error && data) {
+                    score.id = data.id;
+                    score.synced = true;
+                }
+            } catch (error) {
+                console.error('スコア同期エラー:', error);
+            }
+        }
+
+        this.saveLocalScores();
+        console.log('スコア同期完了');
+    }
+
     // ログファイル形式でコンソール出力
     logScoreToConsole(record) {
         const logEntry = [
@@ -101,31 +239,29 @@ class ScoreManager {
             `LEVEL: ${record.level}`,
             `MODE: ${record.mode}`,
             `DIFFICULTY: ${record.difficulty}`,
-            `OPERATIONS: ${Object.entries(record.operations).filter(([_, enabled]) => enabled).map(([op, _]) => op).join(',')}`,
-            `RANGE: ${record.minNum}-${record.maxNum}`,
-            record.clearTime ? `TIME: ${this.formatTime(record.clearTime)}` : ''
+            `USER: ${record.username}`
         ].filter(Boolean).join(' | ');
-        
+
         console.log('MathBlocks Score Log:', logEntry);
     }
-    
+
     // 時間をフォーマット
     formatTime(seconds) {
         const minutes = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
-    
+
     // トップスコアを取得
     getTopScores(limit = 10) {
         return this.scores.slice(0, limit);
     }
-    
+
     // 最高スコアを取得
     getHighScore() {
         return this.scores.length > 0 ? this.scores[0].score : 0;
     }
-    
+
     // 特定条件での最高スコアを取得
     getHighScoreForConditions(operations, minNum, maxNum, difficulty, mode) {
         const filtered = this.scores.filter(record => {
@@ -135,25 +271,26 @@ class ScoreManager {
                    record.maxNum === maxNum &&
                    this.operationsMatch(record.operations, operations);
         });
-        
+
         return filtered.length > 0 ? filtered[0].score : 0;
     }
-    
+
     // 演算設定が一致するかチェック
     operationsMatch(ops1, ops2) {
+        if (!ops1 || !ops2) return false;
         return ops1.add === ops2.add &&
                ops1.sub === ops2.sub &&
                ops1.mul === ops2.mul &&
                ops1.div === ops2.div;
     }
-    
+
     // スコアデータをエクスポート（CSVファイル用）
     exportToCSV() {
         const headers = [
             'Date', 'Score', 'MaxCombo', 'Level', 'Mode', 'Difficulty',
-            'Training', 'Operations', 'MinNum', 'MaxNum', 'GameTime', 'ClearTime'
+            'Training', 'Operations', 'MinNum', 'MaxNum', 'GameTime', 'ClearTime', 'Username'
         ];
-        
+
         const rows = this.scores.map(record => [
             new Date(record.timestamp).toLocaleString(),
             record.score,
@@ -162,208 +299,68 @@ class ScoreManager {
             record.mode,
             record.difficulty,
             record.training || '-',
-            Object.entries(record.operations).filter(([_, enabled]) => enabled).map(([op, _]) => op).join('+'),
+            record.operations ? Object.entries(record.operations).filter(([_, enabled]) => enabled).map(([op, _]) => op).join('+') : '',
             record.minNum,
             record.maxNum,
             record.gameTime ? this.formatTime(record.gameTime) : '0:00',
-            record.clearTime ? this.formatTime(record.clearTime) : ''
+            record.clearTime ? this.formatTime(record.clearTime) : '',
+            record.username || 'ゲスト'
         ]);
-        
-        const csvContent = [headers, ...rows].map(row => 
+
+        const csvContent = [headers, ...rows].map(row =>
             row.map(cell => `"${cell}"`).join(',')
         ).join('\n');
-        
+
         return csvContent;
     }
-    
+
     // 全スコアを取得
     getAllScores() {
-        return [...this.scores]; // 配列のコピーを返す
+        return [...this.scores];
     }
-    
+
     // スコアリセット
     clearAllScores() {
         this.scores = [];
-        this.saveScores();
+        this.saveLocalScores();
     }
-    
-    // 自動ファイル保存機能（DownloadManagerに統合されたため無効化）
-    autoSaveToFile() {
-        console.log('ScoreManager: 個別の自動保存は無効化されています。DownloadManagerを使用してください。');
-        return;
-        
-        try {
-            // 現在の日時を取得
-            const now = new Date();
-            const timestamp = now.toISOString().split('T')[0]; // YYYY-MM-DD形式
-            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS形式
-            
-            // 保存データを準備
-            const saveData = {
-                exportDate: now.toISOString(),
-                version: "MathBlocks v1.3.0",
-                totalScores: this.scores.length,
-                scores: this.scores,
-                userInfo: {
-                    currentUser: localStorage.getItem('mathblocks_current_user') || 'ゲスト',
-                    exportedAt: now.toLocaleString('ja-JP')
-                }
-            };
-            
-            // JSONファイルとして自動ダウンロード
-            const jsonContent = JSON.stringify(saveData, null, 2);
-            const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `mathblocks_backup_${timestamp}_${timeStr}.json`;
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            URL.revokeObjectURL(url);
-            
-            console.log(`自動バックアップ完了: mathblocks_backup_${timestamp}_${timeStr}.json`);
-            
-            // 成功通知（控えめに）
-            this.showAutoSaveNotification();
-            
-        } catch (error) {
-            console.error('自動保存エラー:', error);
-        }
-    }
-    
-    // 自動保存通知表示
-    showAutoSaveNotification() {
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #27ae60;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 10000;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            transition: opacity 0.3s;
-        `;
-        notification.innerHTML = '💾 データを自動保存しました';
-        
-        document.body.appendChild(notification);
-        
-        // 3秒後に消去
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    document.body.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
-    }
-    
-    // 自動保存設定の取得
-    getAutoSaveEnabled() {
-        return localStorage.getItem('mathblocks_autosave') === 'true';
-    }
-    
-    // 自動保存設定の変更
-    setAutoSaveEnabled(enabled) {
-        localStorage.setItem('mathblocks_autosave', enabled.toString());
-        console.log(`自動保存設定: ${enabled ? '有効' : '無効'}`);
-    }
-    
+
     // JSONファイルからスコアをインポート
     importFromJSON(jsonData) {
         try {
-            // 文字列の場合はパース
             const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-            
-            // バージョン確認（警告のみ）
-            if (data.version && !data.version.includes('MathBlocks')) {
-                console.warn('このファイルはMathBlocks以外で作成された可能性があります');
-            }
-            
-            // スコアデータの検証
+
             if (!data.scores || !Array.isArray(data.scores)) {
                 throw new Error('有効なスコアデータが見つかりません');
             }
-            
-            // 既存のスコアと重複チェック
+
             const existingTimestamps = new Set(this.scores.map(s => s.timestamp));
-            const newScores = [];
-            let duplicateCount = 0;
-            
+            let importedCount = 0;
+
             for (const score of data.scores) {
-                // 必須フィールドの確認
-                if (!score.timestamp || score.score === undefined) {
-                    console.warn('不完全なスコアデータをスキップしました:', score);
-                    continue;
-                }
-                
-                // 重複チェック
-                if (existingTimestamps.has(score.timestamp)) {
-                    duplicateCount++;
-                    continue;
-                }
-                
-                // スコアデータの正規化
-                const normalizedScore = {
-                    timestamp: score.timestamp,
-                    score: score.score,
-                    level: score.level || 1,
-                    maxCombo: score.maxCombo || 0,
-                    mode: score.mode || 'score',
-                    difficulty: score.difficulty || 'normal',
-                    correctAnswers: score.correctAnswers || 0,
-                    wrongAnswers: score.wrongAnswers || 0,
-                    avgAnswerTime: score.avgAnswerTime || 0,
-                    gameTime: score.gameTime || 0,
-                    operations: score.operations || {},
-                    training: score.training || null,
-                    numberRange: score.numberRange || { min: 1, max: 10 },
-                    username: score.username || 'ゲスト'
-                };
-                
-                newScores.push(normalizedScore);
+                if (!score.timestamp || score.score === undefined) continue;
+                if (existingTimestamps.has(score.timestamp)) continue;
+
+                score.synced = false;
+                this.scores.push(score);
+                importedCount++;
             }
-            
-            // インポート結果の確認
-            if (newScores.length === 0 && duplicateCount === 0) {
-                throw new Error('インポート可能なスコアが見つかりませんでした');
+
+            this.scores.sort((a, b) => b.score - a.score);
+            this.scores = this.scores.slice(0, 100);
+            this.saveLocalScores();
+
+            // 同期を試みる
+            if (this.isOnline) {
+                this.syncLocalScores();
             }
-            
-            // スコアを追加
-            this.scores = [...this.scores, ...newScores];
-            
-            // 100件を超える場合は古いものから削除
-            if (this.scores.length > 100) {
-                this.scores.sort((a, b) => b.timestamp - a.timestamp);
-                this.scores = this.scores.slice(0, 100);
-            }
-            
-            // 保存
-            this.saveScores();
-            
-            // 結果を返す
-            const result = {
+
+            return {
                 success: true,
-                imported: newScores.length,
-                duplicates: duplicateCount,
-                total: this.scores.length,
-                message: `${newScores.length}件のスコアをインポートしました${duplicateCount > 0 ? `（${duplicateCount}件は重複のためスキップ）` : ''}`
+                imported: importedCount,
+                message: `${importedCount}件のスコアをインポートしました`
             };
-            
-            console.log('スコアインポート完了:', result);
-            return result;
-            
         } catch (error) {
-            console.error('スコアインポートエラー:', error);
             return {
                 success: false,
                 error: error.message,
