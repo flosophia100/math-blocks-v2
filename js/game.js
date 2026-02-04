@@ -587,10 +587,20 @@ class Game {
 
         // スコアを記録（非同期）
         const scoreData = this.createScoreData(this.gameTime);
-        const scoreResult = await this.scoreManager.addScore(scoreData);
+
+        let scoreResult = { ranking: 1, isHighScore: false };
+        try {
+            scoreResult = await this.scoreManager.addScore(scoreData);
+        } catch (error) {
+            console.error('スコア保存エラー:', error);
+        }
 
         // ユーザーデータを記録（非同期）
-        await this.recordUserGameResult(scoreData);
+        try {
+            await this.recordUserGameResult(scoreData);
+        } catch (error) {
+            console.error('ユーザー結果記録エラー:', error);
+        }
 
         const stats = {
             score: this.score,
@@ -1173,9 +1183,19 @@ class Game {
             // 通常モードの処理
             this.state = GameState.GAME_OVER;
             const scoreData = this.createScoreData();
-            const scoreResult = await this.scoreManager.addScore(scoreData);
 
-            await this.recordUserGameResult(scoreData);
+            let scoreResult = { ranking: 1, isHighScore: false };
+            try {
+                scoreResult = await this.scoreManager.addScore(scoreData);
+            } catch (error) {
+                console.error('スコア保存エラー:', error);
+            }
+
+            try {
+                await this.recordUserGameResult(scoreData);
+            } catch (error) {
+                console.error('ユーザー結果記録エラー:', error);
+            }
 
             const stats = {
                 score: this.score,
