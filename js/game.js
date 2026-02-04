@@ -630,10 +630,11 @@ class Game {
         const avgAnswerTime = this.answerTimes.length > 0 ? 
             this.answerTimes.reduce((a, b) => a + b, 0) / this.answerTimes.length : 0;
         
-        // ユーザー名を取得
+        // ユーザー名とIDを取得
         const currentUser = this.userManager ? this.userManager.getCurrentUser() : null;
         const isGuest = this.userManager ? this.userManager.isGuest() : true;
         const username = isGuest ? 'ゲスト' : (currentUser?.username || 'ゲスト');
+        const userId = isGuest ? null : (currentUser?.id || null);
         
         // ゲーム時間を記録（clearTimeがあればそれを使用、なければ現在の経過時間）
         const gameTimeInSeconds = clearTime || this.gameTime;
@@ -660,7 +661,8 @@ class Game {
             correctAnswers: this.correctAnswers,
             wrongAnswers: this.wrongAnswers,
             avgAnswerTime: avgAnswerTime,
-            username: username
+            username: username,
+            userId: userId
         };
     }
     

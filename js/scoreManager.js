@@ -165,7 +165,7 @@ class ScoreManager {
             try {
                 const { data, error } = await this.supabase
                     .from('scores')
-                    .insert([this.convertToDB(record)])
+                    .insert([this.convertToDB(record, scoreData.userId)])
                     .select()
                     .single();
 
