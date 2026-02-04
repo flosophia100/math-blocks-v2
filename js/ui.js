@@ -1407,6 +1407,20 @@ class UIManager {
     setGameInstance(gameInstance) {
         this.gameInstance = gameInstance;
         this.game = gameInstance; // 互換性のため両方に設定
+
+        // ゲームオーバー画面のボタンにイベントリスナーを設定
+        if (this.elements.retryBtn) {
+            this.elements.retryBtn.addEventListener('click', () => {
+                console.log('Retry button clicked');
+                if (this.game) this.game.retry();
+            });
+        }
+        if (this.elements.backToMenuBtn) {
+            this.elements.backToMenuBtn.addEventListener('click', () => {
+                console.log('Back to menu button clicked');
+                if (this.game) this.game.backToMenu();
+            });
+        }
     }
     
     // ユーザー選択画面のメソッド
