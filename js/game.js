@@ -1,4 +1,5 @@
 // メインゲームクラス
+// Version: 20260204-fix3 - error handling in gameOver
 class Game {
     constructor(canvas) {
         this.canvas = canvas;

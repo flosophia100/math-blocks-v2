@@ -1,4 +1,5 @@
 // ユーザー管理システム（Supabase対応版）
+// Version: 20260204-fix3 - bestScores initialization fix
 class UserManager {
     constructor() {
         this.currentUser = null;
