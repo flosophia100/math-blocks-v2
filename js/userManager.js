@@ -265,7 +265,10 @@ class UserManager {
 
         // 最高記録を更新
         const key = `${gameData.mode}-${gameData.difficulty}-${gameData.training || 'none'}`;
-        if (!user.bestScores) user.bestScores = { score: {}, time: {}, combo: {} };
+        if (!user.bestScores) user.bestScores = {};
+        if (!user.bestScores.score) user.bestScores.score = {};
+        if (!user.bestScores.time) user.bestScores.time = {};
+        if (!user.bestScores.combo) user.bestScores.combo = {};
 
         if (!user.bestScores.score[key] || gameData.score > user.bestScores.score[key].score) {
             user.bestScores.score[key] = {
