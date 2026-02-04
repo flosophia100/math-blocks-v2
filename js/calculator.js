@@ -14,6 +14,8 @@ class Calculator {
         this.isTrainingMode = false; // 特訓モードフラグ
         this.omiyageMode = false; // おみやげ算モード
         this.hundredMinusMode = false; // 100引く算モード
+        this.kukuDivMode = false; // 九九割るモード
+        this.addToHundredMode = false; // 足したら100モード
     }
     
     setOperations(ops) {
@@ -44,6 +46,14 @@ class Calculator {
     setHundredMinusMode(enabled) {
         this.hundredMinusMode = enabled;
     }
+
+    setKukuDivMode(enabled) {
+        this.kukuDivMode = enabled;
+    }
+
+    setAddToHundredMode(enabled) {
+        this.addToHundredMode = enabled;
+    }
     
     adjustDifficultyForLevel(level) {
         // 特訓モードの場合は数値範囲を絶対に固定（レベルの影響を受けない）
@@ -60,20 +70,20 @@ class Calculator {
     generateProblem(level = 1) {
         // デバッグログ追加
         console.log('Calculator.generateProblem called with hundredMinusMode:', this.hundredMinusMode);
-        
+
         // 100引く算モードの場合は必ず引き算のみ
         if (this.hundredMinusMode) {
             const operation = 'sub';
             const range = { min: this.minNum, max: this.maxNum };
-            
+
             // 100引く算：必ず100から1～99を引く計算
             const num1 = 100;
             const num2 = this.randomInt(range.min, range.max);
             const answer = num1 - num2;
             const displayOp = '-';
-            
+
             console.log('100引く算モード: 問題生成:', `${num1} ${displayOp} ${num2} = ${answer}`);
-            
+
             return {
                 expression: `${num1} ${displayOp} ${num2}`,
                 answer: answer,
@@ -82,7 +92,45 @@ class Calculator {
                 operation: displayOp
             };
         }
-        
+
+        // 九九割るモード：九九の逆の問題（81÷9、63÷7など）
+        if (this.kukuDivMode) {
+            // 九九の組み合わせからランダムに選択
+            const num2 = this.randomInt(1, 9); // 割る数（1-9）
+            const answer = this.randomInt(1, 9); // 答え（1-9）
+            const num1 = num2 * answer; // 九九の積
+            const displayOp = '÷';
+
+            console.log('九九割るモード: 問題生成:', `${num1} ${displayOp} ${num2} = ${answer}`);
+
+            return {
+                expression: `${num1} ${displayOp} ${num2}`,
+                answer: answer,
+                num1: num1,
+                num2: num2,
+                operation: displayOp
+            };
+        }
+
+        // 足したら100モード：2桁の整数を表示し、足したら100になる数を答えさせる
+        if (this.addToHundredMode) {
+            const range = { min: this.minNum, max: this.maxNum };
+            // 表示する数（11-89の範囲で、答えも2桁になるように）
+            const num1 = this.randomInt(range.min, range.max);
+            const answer = 100 - num1; // 足したら100になる数
+
+            console.log('足したら100モード: 問題生成:', `${num1} → 答え: ${answer}`);
+
+            return {
+                expression: `${num1}`,
+                answer: answer,
+                num1: num1,
+                num2: answer,
+                operation: '+',
+                isAddToHundred: true // 特殊表示用フラグ
+            };
+        }
+
         // 通常の問題生成
         // 有効な演算子を取得
         const enabledOps = [];

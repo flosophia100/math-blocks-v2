@@ -186,10 +186,14 @@ class Game {
         this.calculator.setTrainingMode(settings.training !== null);
         this.calculator.setOmiyageMode(settings.omiyageMode || false);
         this.calculator.setHundredMinusMode(settings.hundredMinusMode || false);
-        
+        this.calculator.setKukuDivMode(settings.kukuDivMode || false);
+        this.calculator.setAddToHundredMode(settings.addToHundredMode || false);
+
         // デバッグログ追加
         console.log('Game.startGame: hundredMinusMode設定:', settings.hundredMinusMode);
         console.log('Game.startGame: calculator.hundredMinusMode:', this.calculator.hundredMinusMode);
+        console.log('Game.startGame: kukuDivMode設定:', settings.kukuDivMode);
+        console.log('Game.startGame: addToHundredMode設定:', settings.addToHundredMode);
         
         // ブロックマネージャーの難易度設定
         this.blockManager.setDifficulty(this.difficulty, settings.training);
@@ -1110,10 +1114,14 @@ class Game {
         this.calculator.setTrainingMode(settings.training !== null);
         this.calculator.setOmiyageMode(settings.omiyageMode || false);
         this.calculator.setHundredMinusMode(settings.hundredMinusMode || false);
-        
+        this.calculator.setKukuDivMode(settings.kukuDivMode || false);
+        this.calculator.setAddToHundredMode(settings.addToHundredMode || false);
+
         // デバッグログ追加
         console.log(`Game[${this.versusSide}]: hundredMinusMode設定:`, settings.hundredMinusMode);
         console.log(`Game[${this.versusSide}]: calculator.hundredMinusMode:`, this.calculator.hundredMinusMode);
+        console.log(`Game[${this.versusSide}]: kukuDivMode設定:`, settings.kukuDivMode);
+        console.log(`Game[${this.versusSide}]: addToHundredMode設定:`, settings.addToHundredMode);
         
         // ブロックマネージャーの設定
         this.blockManager.setDifficulty(this.difficulty, settings.training);

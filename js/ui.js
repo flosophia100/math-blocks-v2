@@ -594,7 +594,9 @@ class UIManager {
                 maxNum: trainingMode.maxNum,
                 carryBorrow: trainingMode.carryBorrow || false,
                 omiyageMode: trainingMode.omiyageMode || false,
-                hundredMinusMode: trainingMode.hundredMinusMode || false
+                hundredMinusMode: trainingMode.hundredMinusMode || false,
+                kukuDivMode: trainingMode.kukuDivMode || false,
+                addToHundredMode: trainingMode.addToHundredMode || false
             };
         }
         
@@ -613,10 +615,12 @@ class UIManager {
             maxNum: this.elements.maxNum ? parseInt(this.elements.maxNum.value) : 10,
             carryBorrow: false,
             omiyageMode: false,
-            hundredMinusMode: false
+            hundredMinusMode: false,
+            kukuDivMode: false,
+            addToHundredMode: false
         };
     }
-    
+
     showScreen(screenName) {
         console.log('UIManager.showScreen called with:', screenName);
         console.log('Available screens:', Object.keys(this.screens));

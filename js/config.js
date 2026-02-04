@@ -6,17 +6,9 @@ const CONFIG = {
         CELL_SIZE: 70 // 1080p最適化: 7列×70px = 490px幅
     },
     DIFFICULTY: {
-        veryeasy: {
+        easy: {
             name: '入門',
-            initialSpeed: 1500,
-            speedIncrease: 0.98,
-            levelUpInterval: 5,
-            maxBlocks: 2,
-            numberRangeIncrease: 1
-        },
-        easy: { 
-            name: 'イージー',
-            initialSpeed: 1200, 
+            initialSpeed: 1200,
             speedIncrease: 0.96,
             levelUpInterval: 5,
             maxBlocks: 3,
@@ -71,33 +63,21 @@ const CONFIG = {
             carryBorrow: true,
             description: '繰り上がり・繰り下がりの計算'
         },
-        addition_only: {
-            name: '足し算のみ',
-            operations: { add: true, sub: false, mul: false, div: false },
-            minNum: 1,
-            maxNum: 100,
-            description: '足し算の特訓'
-        },
-        subtraction_only: {
-            name: '引き算のみ',
-            operations: { add: false, sub: true, mul: false, div: false },
-            minNum: 1,
-            maxNum: 100,
-            description: '引き算の特訓'
-        },
-        multiplication_only: {
-            name: '掛け算のみ',
-            operations: { add: false, sub: false, mul: true, div: false },
-            minNum: 1,
-            maxNum: 50,
-            description: '掛け算の特訓'
-        },
-        division_only: {
-            name: '割り算のみ',
+        kuku_div: {
+            name: '九九割る',
             operations: { add: false, sub: false, mul: false, div: true },
             minNum: 1,
-            maxNum: 500,
-            description: '割り算の特訓'
+            maxNum: 9,
+            kukuDivMode: true,
+            description: '九九の逆（81÷9、63÷7など）'
+        },
+        add_to_hundred: {
+            name: '足したら100',
+            operations: { add: true, sub: false, mul: false, div: false },
+            minNum: 11,
+            maxNum: 89,
+            addToHundredMode: true,
+            description: '足して100になる数を答えよう'
         },
         hundred_minus: {
             name: '100引く算',
@@ -179,17 +159,11 @@ CONFIG.VERSUS = {
     
     // CPU難易度設定（ゲーム難易度に対応）
     CPU_DIFFICULTY: {
-        veryeasy: {
-            name: '入門',
-            responseTime: [2500, 4000], // 反応時間（ミリ秒）
-            accuracy: 0.92, // 正答率をさらに向上（誤答率8%）
-            description: '初心者向け・ゆっくり考える'
-        },
         easy: {
-            name: 'イージー',
+            name: '入門',
             responseTime: [1800, 3500],
-            accuracy: 0.95, // 正答率をさらに向上（誤答率5%）
-            description: '初心者向け・少し早め'
+            accuracy: 0.95,
+            description: '初心者向け'
         },
         normal: {
             name: 'ノーマル',
