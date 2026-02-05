@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>MathBlocks - 計算ブロックゲーム</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260204-4">
+    <link rel="stylesheet" href="css/styles.css?v=20260204-5">
 </head>
 <body>
     <div id="app">
@@ -33,8 +33,16 @@
                 
                 <div id="userInfo" class="user-info" style="display: none;">
                     <div class="current-user">
-                        <span id="currentUserName">ゲスト</span>
-                        <button id="logoutBtn" class="logout-btn">ログアウト</button>
+                        <div class="user-name-row">
+                            <span id="currentUserName">ゲスト</span>
+                            <button id="logoutBtn" class="logout-btn">ログアウト</button>
+                        </div>
+                        <div class="user-stats-summary">
+                            <span class="stat-badge">🏆 <span id="userTotalScore">0</span>点</span>
+                            <span class="stat-badge">⏱️ <span id="userTotalTime">0:00</span></span>
+                            <span class="stat-badge">🎮 <span id="userTotalGames">0</span>回</span>
+                        </div>
+                        <button id="viewDashboardBtn" class="dashboard-btn">📊 ダッシュボード</button>
                     </div>
                 </div>
             </div>
@@ -369,11 +377,86 @@
                 <button id="closeNewItemsBtn">閉じる</button>
             </div>
         </div>
-        
+
+        <!-- ユーザーダッシュボード画面 -->
+        <div id="dashboardScreen" class="screen" style="display: none;">
+            <h1>📊 ダッシュボード</h1>
+            <h2 id="dashboardUserName">ユーザー名</h2>
+
+            <div class="dashboard-content">
+                <!-- 累計統計 -->
+                <div class="dashboard-section">
+                    <h3>📈 累計統計</h3>
+                    <div class="stats-grid dashboard-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon">🏆</div>
+                            <div class="stat-value" id="dashTotalScore">0</div>
+                            <div class="stat-label">累計スコア</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🎮</div>
+                            <div class="stat-value" id="dashTotalGames">0</div>
+                            <div class="stat-label">プレイ回数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⏱️</div>
+                            <div class="stat-value" id="dashTotalTime">0:00</div>
+                            <div class="stat-label">累計プレイ時間</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-value" id="dashBestScore">0</div>
+                            <div class="stat-label">ベストスコア</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🔥</div>
+                            <div class="stat-value" id="dashBestCombo">0</div>
+                            <div class="stat-label">最大コンボ</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-value" id="dashAvgScore">0</div>
+                            <div class="stat-label">平均スコア</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 正解・誤答統計 -->
+                <div class="dashboard-section">
+                    <h3>✅ 回答統計</h3>
+                    <div class="stats-grid dashboard-stats">
+                        <div class="stat-card success">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-value" id="dashTotalCorrect">0</div>
+                            <div class="stat-label">累計正解</div>
+                        </div>
+                        <div class="stat-card error">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-value" id="dashTotalWrong">0</div>
+                            <div class="stat-label">累計誤答</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📈</div>
+                            <div class="stat-value" id="dashAccuracy">0%</div>
+                            <div class="stat-label">正答率</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 獲得アイテム -->
+                <div class="dashboard-section">
+                    <h3>🎁 獲得アイテム</h3>
+                    <div class="stat-value" id="dashItemCount">0個</div>
+                </div>
+            </div>
+
+            <button id="backFromDashboardBtn" class="back-btn">戻る</button>
+        </div>
+
         <!-- ユーザー設定画面 -->
         <div id="userSettingsScreen" class="screen" style="display: none;">
             <h1>ユーザー設定</h1>
-            
+
             <div class="settings-content">
                 <div class="settings-section">
                     <h2>プロファイル</h2>
@@ -693,21 +776,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- 既存システム（先に読み込み） -->
-    <script src="js/config.js?v=20260204-4"></script>
-    <script src="js/supabase.js?v=20260204-4"></script>
-    <script src="js/logger.js?v=20260204-4"></script>
-    <script src="js/downloadManager.js?v=20260204-4"></script>
-    <script src="js/calculator.js?v=20260204-4"></script>
-    <script src="js/hintSystem.js?v=20260204-4"></script>
-    <script src="js/block.js?v=20260204-4"></script>
-    <script src="js/input.js?v=20260204-4"></script>
-    <script src="js/userManager.js?v=20260204-4"></script>
-    <script src="js/scoreManager.js?v=20260204-4"></script>
-    <script src="js/ui.js?v=20260204-4"></script>
-    <script src="js/game.js?v=20260204-4"></script>
-    <script src="js/versusGame.js?v=20260204-4"></script>
+    <script src="js/config.js?v=20260204-5"></script>
+    <script src="js/supabase.js?v=20260204-5"></script>
+    <script src="js/logger.js?v=20260204-5"></script>
+    <script src="js/downloadManager.js?v=20260204-5"></script>
+    <script src="js/calculator.js?v=20260204-5"></script>
+    <script src="js/hintSystem.js?v=20260204-5"></script>
+    <script src="js/block.js?v=20260204-5"></script>
+    <script src="js/input.js?v=20260204-5"></script>
+    <script src="js/userManager.js?v=20260204-5"></script>
+    <script src="js/scoreManager.js?v=20260204-5"></script>
+    <script src="js/ui.js?v=20260204-5"></script>
+    <script src="js/game.js?v=20260204-5"></script>
+    <script src="js/versusGame.js?v=20260204-5"></script>
 
     <!-- メイン初期化 -->
-    <script src="js/main.js?v=20260204-4"></script>
+    <script src="js/main.js?v=20260204-5"></script>
 </body>
 </html>

@@ -12,6 +12,7 @@ class UIManager {
             gameOver: document.getElementById('gameOverScreen'),
             score: document.getElementById('scoreScreen'),
             collection: document.getElementById('collectionScreen'),
+            dashboard: document.getElementById('dashboardScreen'),
             userSettings: document.getElementById('userSettingsScreen'),
             versusCpuSetup: document.getElementById('versusCpuSetupScreen'),
             versusHumanSetup: document.getElementById('versusHumanSetupScreen'),
@@ -26,6 +27,24 @@ class UIManager {
             currentUserName: document.getElementById('currentUserName'),
             logoutBtn: document.getElementById('logoutBtn'),
             userInfo: document.getElementById('userInfo'),
+            userTotalScore: document.getElementById('userTotalScore'),
+            userTotalTime: document.getElementById('userTotalTime'),
+            userTotalGames: document.getElementById('userTotalGames'),
+            viewDashboardBtn: document.getElementById('viewDashboardBtn'),
+
+            // ダッシュボード画面
+            dashboardUserName: document.getElementById('dashboardUserName'),
+            dashTotalScore: document.getElementById('dashTotalScore'),
+            dashTotalGames: document.getElementById('dashTotalGames'),
+            dashTotalTime: document.getElementById('dashTotalTime'),
+            dashBestScore: document.getElementById('dashBestScore'),
+            dashBestCombo: document.getElementById('dashBestCombo'),
+            dashAvgScore: document.getElementById('dashAvgScore'),
+            dashTotalCorrect: document.getElementById('dashTotalCorrect'),
+            dashTotalWrong: document.getElementById('dashTotalWrong'),
+            dashAccuracy: document.getElementById('dashAccuracy'),
+            dashItemCount: document.getElementById('dashItemCount'),
+            backFromDashboardBtn: document.getElementById('backFromDashboardBtn'),
             
             // 認証画面
             loginTab: document.getElementById('loginTab'),
@@ -241,7 +260,13 @@ class UIManager {
         if (this.elements.logoutBtn) {
             this.elements.logoutBtn.addEventListener('click', () => this.logout());
         }
-        
+        if (this.elements.viewDashboardBtn) {
+            this.elements.viewDashboardBtn.addEventListener('click', () => this.showDashboard());
+        }
+        if (this.elements.backFromDashboardBtn) {
+            this.elements.backFromDashboardBtn.addEventListener('click', () => this.showScreen('user'));
+        }
+
         // 認証画面
         if (this.elements.loginTab) {
             this.elements.loginTab.addEventListener('click', () => this.showLoginTab());
@@ -1501,24 +1526,93 @@ class UIManager {
     
     updateUserDisplay() {
         if (!this.userManager) return;
-        
+
         const currentUser = this.userManager.getCurrentUser();
         const isGuest = this.userManager.isGuest();
-        
+
         // ユーザー選択画面の表示更新
         if (this.elements.currentUserName) {
             this.elements.currentUserName.textContent = isGuest ? 'ゲスト' : (currentUser?.username || 'ゲスト');
         }
-        
+
         // ユーザー情報の表示/非表示
         if (this.elements.userInfo) {
             this.elements.userInfo.style.display = !isGuest && currentUser ? 'block' : 'none';
         }
-        
+
+        // ユーザー統計サマリーの表示
+        if (!isGuest && currentUser) {
+            if (this.elements.userTotalScore) {
+                this.elements.userTotalScore.textContent = (currentUser.totalScore || 0).toLocaleString();
+            }
+            if (this.elements.userTotalGames) {
+                this.elements.userTotalGames.textContent = currentUser.gamesPlayed || 0;
+            }
+            if (this.elements.userTotalTime) {
+                const totalTime = currentUser.totalTime || 0;
+                const minutes = Math.floor(totalTime / 60);
+                const seconds = Math.floor(totalTime % 60);
+                this.elements.userTotalTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
         // ヘッダーのユーザー名更新
         if (this.elements.headerUserName) {
             this.elements.headerUserName.textContent = isGuest ? 'ゲスト' : (currentUser?.username || 'ゲスト');
         }
+    }
+
+    // ダッシュボード表示
+    showDashboard() {
+        if (!this.userManager) return;
+
+        const currentUser = this.userManager.getCurrentUser();
+        if (!currentUser) return;
+
+        // ダッシュボードデータを更新
+        if (this.elements.dashboardUserName) {
+            this.elements.dashboardUserName.textContent = currentUser.username;
+        }
+        if (this.elements.dashTotalScore) {
+            this.elements.dashTotalScore.textContent = (currentUser.totalScore || 0).toLocaleString();
+        }
+        if (this.elements.dashTotalGames) {
+            this.elements.dashTotalGames.textContent = currentUser.gamesPlayed || 0;
+        }
+        if (this.elements.dashTotalTime) {
+            const totalTime = currentUser.totalTime || 0;
+            const minutes = Math.floor(totalTime / 60);
+            const seconds = Math.floor(totalTime % 60);
+            this.elements.dashTotalTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        if (this.elements.dashBestScore) {
+            this.elements.dashBestScore.textContent = (currentUser.bestScore || 0).toLocaleString();
+        }
+        if (this.elements.dashBestCombo) {
+            this.elements.dashBestCombo.textContent = currentUser.bestCombo || 0;
+        }
+        if (this.elements.dashAvgScore) {
+            const avgScore = currentUser.gamesPlayed > 0 ?
+                Math.round(currentUser.totalScore / currentUser.gamesPlayed) : 0;
+            this.elements.dashAvgScore.textContent = avgScore.toLocaleString();
+        }
+        if (this.elements.dashTotalCorrect) {
+            this.elements.dashTotalCorrect.textContent = (currentUser.totalCorrect || 0).toLocaleString();
+        }
+        if (this.elements.dashTotalWrong) {
+            this.elements.dashTotalWrong.textContent = (currentUser.totalWrong || 0).toLocaleString();
+        }
+        if (this.elements.dashAccuracy) {
+            const total = (currentUser.totalCorrect || 0) + (currentUser.totalWrong || 0);
+            const accuracy = total > 0 ? Math.round((currentUser.totalCorrect / total) * 100) : 0;
+            this.elements.dashAccuracy.textContent = `${accuracy}%`;
+        }
+        if (this.elements.dashItemCount) {
+            const itemCount = (currentUser.items || []).length;
+            this.elements.dashItemCount.textContent = `${itemCount}個`;
+        }
+
+        this.showScreen('dashboard');
     }
     
     // 認証画面のメソッド
