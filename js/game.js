@@ -314,20 +314,25 @@ class Game {
     }
     
     update(deltaTime) {
-        // ゲーム時間更新
-        this.gameTime += deltaTime / 1000;
-        
+        // タイムストップ状態を確認
+        const isTimeStopActive = this.blockManager && this.blockManager.isTimeStopActive;
+
+        // ゲーム時間更新（タイムアタックモードでタイムストップ中は停止）
+        if (!(this.mode === GameMode.TIME && isTimeStopActive)) {
+            this.gameTime += deltaTime / 1000;
+        }
+
         // デバッグ用: updateメソッドの呼び出しを確認
         if (!this.updateCounter) this.updateCounter = 0;
         this.updateCounter++;
-        
+
         // タイムアタックモードの時間表示とタイムアップチェック
         if (this.mode === GameMode.TIME) {
             const remainingTime = CONFIG.TIME_ATTACK.DURATION - this.gameTime;
             if (this.uiManager) {
-                this.uiManager.updateTime(Math.max(0, remainingTime));
+                this.uiManager.updateTime(Math.max(0, remainingTime), isTimeStopActive);
             }
-            
+
             // 時間切れチェック
             if (remainingTime <= 0) {
                 this.gameComplete();

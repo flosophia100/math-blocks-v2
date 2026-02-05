@@ -212,6 +212,10 @@ class UIManager {
         this.userManager = null; // ユーザーマネージャー参照
         this.gameInstance = null; // ゲームインスタンス参照
         this.versusGame = null; // 対戦ゲームインスタンス参照
+
+        // スコアボードフィルター状態
+        this.scoreFilterMode = 'score'; // 'score' or 'time'
+        this.scoreFilterDifficulty = 'all'; // 'all', 'easy', 'normal', 'hard', 'veryhard'
         
         // 隠し機能用のクリックカウンタ
         this.scoreAttackClickCount = 0;
@@ -446,6 +450,9 @@ class UIManager {
         this.elements.sortFilter.addEventListener('change', () => this.updateScoreTable());
         this.elements.exportScoresBtn.addEventListener('click', () => this.exportScores());
         this.elements.backFromScoresBtn.addEventListener('click', () => this.backToMenu());
+
+        // スコアボードタブのイベントリスナー
+        this.setupScoreboardTabs();
         
         // デバッグパネルのスコア削除・自動保存設定・インポート
         if (this.elements.clearAllScoresDebug) {
@@ -669,10 +676,20 @@ class UIManager {
         }
     }
     
-    updateTime(seconds) {
+    updateTime(seconds, isTimeStopActive = false) {
         const minutes = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
-        this.elements.time.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        const timeStr = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+        if (isTimeStopActive) {
+            this.elements.time.textContent = `⏸️ ${timeStr}`;
+            this.elements.time.style.color = '#00bfff';
+            this.elements.time.style.textShadow = '0 0 10px #00bfff';
+        } else {
+            this.elements.time.textContent = timeStr;
+            this.elements.time.style.color = '';
+            this.elements.time.style.textShadow = '';
+        }
     }
     
     
@@ -991,7 +1008,32 @@ class UIManager {
     setScoreManager(scoreManager) {
         this.scoreManager = scoreManager;
     }
-    
+
+    // スコアボードタブの設定
+    setupScoreboardTabs() {
+        // モードタブ
+        const modeTabs = document.querySelectorAll('.score-mode-tab');
+        modeTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                modeTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.scoreFilterMode = tab.dataset.mode;
+                this.updateScoreTable();
+            });
+        });
+
+        // 難易度タブ
+        const difficultyTabs = document.querySelectorAll('.score-difficulty-tab');
+        difficultyTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                difficultyTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.scoreFilterDifficulty = tab.dataset.difficulty;
+                this.updateScoreTable();
+            });
+        });
+    }
+
     showScoreScreen() {
         // 重複実行防止（0.5秒以内の実行は無視）
         const now = Date.now();
@@ -1034,19 +1076,32 @@ class UIManager {
     
     updateScoreTable() {
         if (!this.scoreManager) return;
-        
+
         let scores = this.scoreManager.getAllScores(); // 全データを取得
-        
+
+        // モードでフィルタリング
+        scores = scores.filter(s => s.mode === this.scoreFilterMode);
+
+        // 難易度でフィルタリング
+        if (this.scoreFilterDifficulty !== 'all') {
+            scores = scores.filter(s => s.difficulty === this.scoreFilterDifficulty);
+        }
+
         // 並び替え
         const sortType = this.elements.sortFilter.value;
-        console.log('Sorting scores:', { sortType, totalScores: scores.length });
-        
+        console.log('Filtering scores:', {
+            mode: this.scoreFilterMode,
+            difficulty: this.scoreFilterDifficulty,
+            sortType,
+            filteredCount: scores.length
+        });
+
         const sortFunction = this.getSortFunction(sortType);
         scores.sort(sortFunction);
-        
+
         // 表示件数を20件に制限
         scores = scores.slice(0, 20);
-        
+
         const tbody = this.elements.scoresTable.querySelector('tbody');
         tbody.innerHTML = '';
         
@@ -1092,7 +1147,6 @@ class UIManager {
                 <td>${score.wrongAnswers || 0}</td>
                 <td>${avgTimeStr}</td>
                 <td>${gameTimeStr}</td>
-                <td>${score.mode}</td>
                 <td>${score.difficulty}</td>
                 <td>${trainingModeStr}</td>
                 <td>${dateStr}</td>

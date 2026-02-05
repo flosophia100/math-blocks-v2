@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>MathBlocks - 計算ブロックゲーム</title>
-    <link rel="stylesheet" href="css/styles.css?v=v2-20240910-1300">
+    <link rel="stylesheet" href="css/styles.css?v=20260204-4">
 </head>
 <body>
     <div id="app">
@@ -292,14 +292,28 @@
         <!-- スコアボード画面 -->
         <div id="scoreScreen" class="screen" style="display: none;">
             <h1>スコアボード</h1>
+
+            <!-- モードタブ -->
+            <div class="score-mode-tabs">
+                <button class="score-mode-tab active" data-mode="score">スコアアタック</button>
+                <button class="score-mode-tab" data-mode="time">タイムアタック</button>
+            </div>
+
+            <!-- 難易度タブ -->
+            <div class="score-difficulty-tabs">
+                <button class="score-difficulty-tab active" data-difficulty="all">全て</button>
+                <button class="score-difficulty-tab" data-difficulty="easy">入門</button>
+                <button class="score-difficulty-tab" data-difficulty="normal">ノーマル</button>
+                <button class="score-difficulty-tab" data-difficulty="hard">ハード</button>
+                <button class="score-difficulty-tab" data-difficulty="veryhard">エクストリーム</button>
+            </div>
+
             <div class="score-controls">
                 <div class="score-filters">
                     <label for="sortFilter">並び替え: </label>
                     <select id="sortFilter">
                         <option value="score">スコア順</option>
                         <option value="date">日時順</option>
-                        <option value="mode">モード別</option>
-                        <option value="difficulty">難易度別</option>
                         <option value="gameTime">ゲーム時間順</option>
                         <option value="level">レベル順</option>
                     </select>
@@ -322,7 +336,6 @@
                             <th>誤答数</th>
                             <th>平均時間</th>
                             <th>ゲーム時間</th>
-                            <th>モード</th>
                             <th>難易度</th>
                             <th>特訓</th>
                             <th>日時</th>
@@ -680,21 +693,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- 既存システム（先に読み込み） -->
-    <script src="js/config.js?v=20260204-3"></script>
-    <script src="js/supabase.js?v=20260204-3"></script>
-    <script src="js/logger.js?v=20260204-3"></script>
-    <script src="js/downloadManager.js?v=20260204-3"></script>
-    <script src="js/calculator.js?v=20260204-3"></script>
-    <script src="js/hintSystem.js?v=20260204-3"></script>
-    <script src="js/block.js?v=20260204-3"></script>
-    <script src="js/input.js?v=20260204-3"></script>
-    <script src="js/userManager.js?v=20260204-3"></script>
-    <script src="js/scoreManager.js?v=20260204-3"></script>
-    <script src="js/ui.js?v=20260204-3"></script>
-    <script src="js/game.js?v=20260204-3"></script>
-    <script src="js/versusGame.js?v=20260204-3"></script>
+    <script src="js/config.js?v=20260204-4"></script>
+    <script src="js/supabase.js?v=20260204-4"></script>
+    <script src="js/logger.js?v=20260204-4"></script>
+    <script src="js/downloadManager.js?v=20260204-4"></script>
+    <script src="js/calculator.js?v=20260204-4"></script>
+    <script src="js/hintSystem.js?v=20260204-4"></script>
+    <script src="js/block.js?v=20260204-4"></script>
+    <script src="js/input.js?v=20260204-4"></script>
+    <script src="js/userManager.js?v=20260204-4"></script>
+    <script src="js/scoreManager.js?v=20260204-4"></script>
+    <script src="js/ui.js?v=20260204-4"></script>
+    <script src="js/game.js?v=20260204-4"></script>
+    <script src="js/versusGame.js?v=20260204-4"></script>
 
     <!-- メイン初期化 -->
-    <script src="js/main.js?v=20260204-3"></script>
+    <script src="js/main.js?v=20260204-4"></script>
 </body>
 </html>

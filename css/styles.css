@@ -2367,3 +2367,121 @@ body {
         font-size: 18px;
     }
 }
+
+/* スコアボードタブ */
+.score-mode-tabs,
+.score-difficulty-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.score-mode-tab,
+.score-difficulty-tab {
+    padding: 10px 20px;
+    border: 2px solid #3498db;
+    background: transparent;
+    color: #3498db;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.score-mode-tab:hover,
+.score-difficulty-tab:hover {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.score-mode-tab.active {
+    background: #3498db;
+    color: white;
+}
+
+.score-difficulty-tab.active {
+    background: #27ae60;
+    color: white;
+    border-color: #27ae60;
+}
+
+.score-difficulty-tab {
+    border-color: #27ae60;
+    color: #27ae60;
+}
+
+.score-difficulty-tab:hover {
+    background: rgba(39, 174, 96, 0.1);
+}
+
+.score-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 0 10px;
+}
+
+.score-filters label {
+    margin-right: 10px;
+}
+
+.score-filters select {
+    padding: 8px 15px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.score-actions button {
+    padding: 8px 15px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+#exportScoresBtn {
+    background: #9b59b6;
+    color: white;
+}
+
+#exportScoresBtn:hover {
+    background: #8e44ad;
+}
+
+#backFromScoresBtn {
+    background: #95a5a6;
+    color: white;
+}
+
+#backFromScoresBtn:hover {
+    background: #7f8c8d;
+}
+
+.scores-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .score-mode-tabs,
+    .score-difficulty-tabs {
+        flex-wrap: wrap;
+    }
+
+    .score-mode-tab,
+    .score-difficulty-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .score-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
