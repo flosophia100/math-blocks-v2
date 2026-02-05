@@ -2618,6 +2618,94 @@ body {
     font-size: 16px;
 }
 
+/* 難易度別統計 */
+.difficulty-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.difficulty-stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+    border: 2px solid;
+    transition: all 0.3s ease;
+}
+
+.difficulty-stat-card:hover {
+    transform: translateY(-3px);
+}
+
+.difficulty-stat-card.easy {
+    border-color: #27ae60;
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.1) 0%, rgba(46, 204, 113, 0.05) 100%);
+}
+
+.difficulty-stat-card.normal {
+    border-color: #3498db;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(41, 128, 185, 0.05) 100%);
+}
+
+.difficulty-stat-card.hard {
+    border-color: #e67e22;
+    background: linear-gradient(135deg, rgba(230, 126, 34, 0.1) 0%, rgba(211, 84, 0, 0.05) 100%);
+}
+
+.difficulty-stat-card.veryhard {
+    border-color: #e74c3c;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.1) 0%, rgba(192, 57, 43, 0.05) 100%);
+}
+
+.difficulty-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.difficulty-icon {
+    font-size: 20px;
+}
+
+.difficulty-name {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.difficulty-stat-card.easy .difficulty-name { color: #27ae60; }
+.difficulty-stat-card.normal .difficulty-name { color: #3498db; }
+.difficulty-stat-card.hard .difficulty-name { color: #e67e22; }
+.difficulty-stat-card.veryhard .difficulty-name { color: #e74c3c; }
+
+.difficulty-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.detail-label {
+    color: #888;
+}
+
+.detail-value {
+    font-weight: bold;
+    color: #fff;
+}
+
+.detail-value.highlight {
+    color: #f1c40f;
+}
+
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .user-stats-summary {
@@ -2635,5 +2723,17 @@ body {
 
     .stat-card .stat-value {
         font-size: 20px;
+    }
+
+    .difficulty-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .difficulty-stat-card {
+        padding: 12px;
+    }
+
+    .detail-row {
+        font-size: 11px;
     }
 }

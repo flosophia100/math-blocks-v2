@@ -1612,7 +1612,81 @@ class UIManager {
             this.elements.dashItemCount.textContent = `${itemCount}個`;
         }
 
+        // 難易度別統計を表示
+        this.updateDifficultyStats(currentUser.username);
+
         this.showScreen('dashboard');
+    }
+
+    // 難易度別統計を更新
+    updateDifficultyStats(username) {
+        const container = document.getElementById('difficultyStatsContainer');
+        if (!container || !this.scoreManager) return;
+
+        // スコア履歴から難易度別に集計
+        const scores = this.scoreManager.getAllScores();
+        const userScores = scores.filter(s => s.username === username);
+
+        const difficulties = {
+            easy: { name: '入門', scores: [], icon: '🌱' },
+            normal: { name: 'ノーマル', scores: [], icon: '⚡' },
+            hard: { name: 'ハード', scores: [], icon: '🔥' },
+            veryhard: { name: 'エクストリーム', scores: [], icon: '💀' }
+        };
+
+        // 難易度ごとにスコアを分類
+        userScores.forEach(score => {
+            if (difficulties[score.difficulty]) {
+                difficulties[score.difficulty].scores.push(score);
+            }
+        });
+
+        // HTMLを生成
+        let html = '<div class="difficulty-stats-grid">';
+
+        Object.entries(difficulties).forEach(([key, data]) => {
+            const count = data.scores.length;
+            const totalScore = data.scores.reduce((sum, s) => sum + (s.score || 0), 0);
+            const bestScore = count > 0 ? Math.max(...data.scores.map(s => s.score || 0)) : 0;
+            const avgScore = count > 0 ? Math.round(totalScore / count) : 0;
+            const totalTime = data.scores.reduce((sum, s) => sum + (s.gameTime || 0), 0);
+            const timeMinutes = Math.floor(totalTime / 60);
+            const timeSeconds = Math.floor(totalTime % 60);
+
+            html += `
+                <div class="difficulty-stat-card ${key}">
+                    <div class="difficulty-header">
+                        <span class="difficulty-icon">${data.icon}</span>
+                        <span class="difficulty-name">${data.name}</span>
+                    </div>
+                    <div class="difficulty-details">
+                        <div class="detail-row">
+                            <span class="detail-label">プレイ回数</span>
+                            <span class="detail-value">${count}回</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">累計スコア</span>
+                            <span class="detail-value">${totalScore.toLocaleString()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">ベストスコア</span>
+                            <span class="detail-value highlight">${bestScore.toLocaleString()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">平均スコア</span>
+                            <span class="detail-value">${avgScore.toLocaleString()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">プレイ時間</span>
+                            <span class="detail-value">${timeMinutes}:${timeSeconds.toString().padStart(2, '0')}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
     }
     
     // 認証画面のメソッド

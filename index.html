@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>MathBlocks - 計算ブロックゲーム</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260204-5">
+    <link rel="stylesheet" href="css/styles.css?v=20260204-6">
 </head>
 <body>
     <div id="app">
@@ -384,9 +384,9 @@
             <h2 id="dashboardUserName">ユーザー名</h2>
 
             <div class="dashboard-content">
-                <!-- 累計統計 -->
+                <!-- 総合統計 -->
                 <div class="dashboard-section">
-                    <h3>📈 累計統計</h3>
+                    <h3>📈 総合統計</h3>
                     <div class="stats-grid dashboard-stats">
                         <div class="stat-card">
                             <div class="stat-icon">🏆</div>
@@ -418,6 +418,14 @@
                             <div class="stat-value" id="dashAvgScore">0</div>
                             <div class="stat-label">平均スコア</div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 難易度別統計 -->
+                <div class="dashboard-section">
+                    <h3>🎯 難易度別統計</h3>
+                    <div class="difficulty-stats-container" id="difficultyStatsContainer">
+                        <!-- 動的に生成される -->
                     </div>
                 </div>
 
@@ -776,21 +784,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- 既存システム（先に読み込み） -->
-    <script src="js/config.js?v=20260204-5"></script>
-    <script src="js/supabase.js?v=20260204-5"></script>
-    <script src="js/logger.js?v=20260204-5"></script>
-    <script src="js/downloadManager.js?v=20260204-5"></script>
-    <script src="js/calculator.js?v=20260204-5"></script>
-    <script src="js/hintSystem.js?v=20260204-5"></script>
-    <script src="js/block.js?v=20260204-5"></script>
-    <script src="js/input.js?v=20260204-5"></script>
-    <script src="js/userManager.js?v=20260204-5"></script>
-    <script src="js/scoreManager.js?v=20260204-5"></script>
-    <script src="js/ui.js?v=20260204-5"></script>
-    <script src="js/game.js?v=20260204-5"></script>
-    <script src="js/versusGame.js?v=20260204-5"></script>
+    <script src="js/config.js?v=20260204-6"></script>
+    <script src="js/supabase.js?v=20260204-6"></script>
+    <script src="js/logger.js?v=20260204-6"></script>
+    <script src="js/downloadManager.js?v=20260204-6"></script>
+    <script src="js/calculator.js?v=20260204-6"></script>
+    <script src="js/hintSystem.js?v=20260204-6"></script>
+    <script src="js/block.js?v=20260204-6"></script>
+    <script src="js/input.js?v=20260204-6"></script>
+    <script src="js/userManager.js?v=20260204-6"></script>
+    <script src="js/scoreManager.js?v=20260204-6"></script>
+    <script src="js/ui.js?v=20260204-6"></script>
+    <script src="js/game.js?v=20260204-6"></script>
+    <script src="js/versusGame.js?v=20260204-6"></script>
 
     <!-- メイン初期化 -->
-    <script src="js/main.js?v=20260204-5"></script>
+    <script src="js/main.js?v=20260204-6"></script>
 </body>
 </html>
